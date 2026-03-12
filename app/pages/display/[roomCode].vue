@@ -63,6 +63,15 @@ watch(
     }
   }
 )
+
+watch(
+  () => state.value?.playback.stepIndex,
+  (stepIndex) => {
+    if (stepIndex === 0 && state.value && !state.value.playback.isPlaying) {
+      scrollOffset.value = 0
+    }
+  }
+)
 </script>
 
 <template>

@@ -1,6 +1,6 @@
 import { getOrCreateSession, upsertSession } from '#server/utils/db'
 import { importGoogleDocText } from '#server/utils/google-docs'
-import { getIo } from '#server/utils/realtime'
+import { broadcastToRoom } from '#server/utils/ws-realtime'
 
 export default defineEventHandler(async (event) => {
   const body = await readBody<{ roomCode: string; url: string }>(event)
@@ -20,7 +20,7 @@ export default defineEventHandler(async (event) => {
   }
 
   upsertSession(next)
-  getIo()?.to(roomCode).emit('session:state', next)
+  broadcastToRoom(roomCode, 'session:state', next)
 
   return next
 })

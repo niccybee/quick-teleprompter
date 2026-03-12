@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { ThemeMode } from '#shared/types/teleprompter'
+import { renderMarkdown } from '~/utils/markdown'
 
 const route = useRoute()
 const roomCode = String(route.params.roomCode).toUpperCase()
@@ -18,6 +19,7 @@ const markdown = ref('')
 const googleDocUrl = ref('')
 const importPending = ref(false)
 const controlsOpen = ref(false)
+const previewMinimized = ref(false)
 
 watch(
   () => state.value?.scriptMarkdown,
@@ -68,6 +70,20 @@ const reduceSpeed = () => {
 
   updatePlayback({ speedWpm: state.value.playback.speedWpm - 10 })
 }
+
+const play = () => {
+  updatePlayback({ isPlaying: true })
+}
+
+const pause = () => {
+  updatePlayback({ isPlaying: false })
+}
+
+const reset = () => {
+  updatePlayback({ isPlaying: false, stepIndex: 0 })
+}
+
+const previewHtml = computed(() => renderMarkdown(markdown.value))
 </script>
 
 <template>
@@ -96,7 +112,7 @@ const reduceSpeed = () => {
               <UTextarea v-model="markdown" :rows="16" autoresize class="w-full" />
             </UScrollArea>
             <div class="flex flex-wrap gap-2">
-              <UButton @click="submitMarkdown">Apply Markdown</UButton>
+              <UButton @click="submitMarkdown">Load to Display</UButton>
               <UInput v-model="googleDocUrl" placeholder="Google Doc URL" class="min-w-72" />
               <UButton :loading="importPending" variant="soft" @click="importGoogleDoc">Import Doc</UButton>
               <UButton variant="outline" @click="controlsOpen = true">Open Controls</UButton>
@@ -166,9 +182,9 @@ const reduceSpeed = () => {
           </div>
 
           <div class="flex flex-wrap gap-2">
-            <UButton @click="updatePlayback({ isPlaying: !state.playback.isPlaying })">
-              {{ state.playback.isPlaying ? 'Pause' : 'Play' }}
-            </UButton>
+            <UButton @click="play">Play</UButton>
+            <UButton variant="soft" @click="pause">Pause</UButton>
+            <UButton color="warning" variant="soft" @click="reset">Reset</UButton>
             <UButton variant="soft" @click="stepPlayback({ direction: 'prev' })">Step Prev</UButton>
             <UButton variant="soft" @click="stepPlayback({ direction: 'next' })">Step Next</UButton>
             <UButton variant="soft" @click="updateDisplay({ mirror: !state.display.mirror })">
@@ -184,6 +200,25 @@ const reduceSpeed = () => {
               <UButton variant="soft" @click="setTheme('system')">System</UButton>
             </div>
           </div>
+
+          <UCard>
+            <template #header>
+              <div class="flex items-center justify-between gap-2">
+                <h3 class="font-medium">Preview</h3>
+                <UButton
+                  size="xs"
+                  variant="soft"
+                  @click="previewMinimized = !previewMinimized"
+                >
+                  {{ previewMinimized ? 'Expand' : 'Minimize' }}
+                </UButton>
+              </div>
+            </template>
+
+            <UScrollArea v-if="!previewMinimized" class="h-48 rounded border border-default p-3">
+              <div class="prose prose-sm max-w-none dark:prose-invert" v-html="previewHtml" />
+            </UScrollArea>
+          </UCard>
         </div>
       </template>
     </UModal>

@@ -7,84 +7,108 @@ import type {
   TeleprompterState
 } from '#shared/types/teleprompter'
 
+interface ServerMessage<T = unknown> {
+  type: string
+  payload: T
+}
+
+function buildWsUrl(roomCode: string, role: SessionRole): string {
+  const protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${protocol}//${window.location.host}/ws/${roomCode}?role=${role}`
+}
+
 export function useTeleprompterSocket(roomCode: string, role: SessionRole) {
-  const socket = import.meta.client ? useNuxtApp().$socket : null
-  const connected = ref(socket?.connected ?? false)
+  const connected = ref(false)
   const error = ref('')
   const state = ref<TeleprompterState | null>(null)
+  const socket = shallowRef<WebSocket | null>(null)
+  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
 
-  const join = () => {
-    if (!socket) {
+  const send = (type: string, payload: unknown = {}) => {
+    if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
       return
     }
 
-    socket.emit('session:join', { roomCode, role })
+    socket.value.send(JSON.stringify({ type, payload }))
   }
 
-  if (socket) {
-    socket.off('connect')
-    socket.on('connect', () => {
+  const connect = () => {
+    if (!import.meta.client || socket.value?.readyState === WebSocket.OPEN) {
+      return
+    }
+
+    socket.value = new WebSocket(buildWsUrl(roomCode, role))
+
+    socket.value.onopen = () => {
       connected.value = true
-      join()
-    })
+      error.value = ''
 
-    socket.off('disconnect')
-    socket.on('disconnect', () => {
+      heartbeatTimer = setInterval(() => {
+        send('session:heartbeat', { roomCode, role })
+      }, 20_000)
+    }
+
+    socket.value.onclose = () => {
       connected.value = false
-    })
+      if (heartbeatTimer) {
+        clearInterval(heartbeatTimer)
+        heartbeatTimer = null
+      }
+    }
 
-    socket.off('session:state')
-    socket.on('session:state', (nextState) => {
-      state.value = nextState
-    })
+    socket.value.onerror = () => {
+      error.value = 'Realtime connection failed'
+    }
 
-    socket.off('session:error')
-    socket.on('session:error', (message) => {
-      error.value = message
-    })
+    socket.value.onmessage = (event) => {
+      let message: ServerMessage
+      try {
+        message = JSON.parse(String(event.data))
+      }
+      catch {
+        return
+      }
+
+      if (message.type === 'session:state') {
+        state.value = message.payload as TeleprompterState
+      }
+
+      if (message.type === 'session:error') {
+        error.value = String(message.payload)
+      }
+    }
   }
 
   onMounted(() => {
-    if (!socket) {
-      return
+    connect()
+  })
+
+  onBeforeUnmount(() => {
+    if (heartbeatTimer) {
+      clearInterval(heartbeatTimer)
+      heartbeatTimer = null
     }
 
-    if (!socket.connected) {
-      socket.connect()
+    if (socket.value) {
+      socket.value.close()
+      socket.value = null
     }
-    join()
   })
 
   const updateScript = (payload: ScriptUpdatePayload) => {
-    if (!socket) {
-      return
-    }
-
-    socket.emit('script:update', payload)
+    send('script:update', payload)
   }
 
   const updatePlayback = (payload: PlaybackUpdatePayload) => {
-    if (!socket) {
-      return
-    }
-
-    socket.emit('playback:update', payload)
+    send('playback:update', payload)
   }
 
   const updateDisplay = (payload: DisplayUpdatePayload) => {
-    if (!socket) {
-      return
-    }
-
-    socket.emit('display:update', payload)
+    send('display:update', payload)
   }
 
   const stepPlayback = (payload: PlaybackStepPayload) => {
-    if (!socket) {
-      return
-    }
-
-    socket.emit('playback:step', payload)
+    send('playback:step', payload)
   }
 
   return {

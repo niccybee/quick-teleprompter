@@ -3,11 +3,6 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: ['@nuxt/ui', '@vite-pwa/nuxt'],
   css: ['~/assets/css/main.css'],
-  runtimeConfig: {
-    public: {
-      socketPath: '/socket.io'
-    }
-  },
   nitro: {
     experimental: {
       websocket: true
