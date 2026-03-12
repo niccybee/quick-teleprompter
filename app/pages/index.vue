@@ -27,6 +27,7 @@ const createRoom = async () => {
 }
 
 const normalizedJoinCode = computed(() => joinCode.value.toUpperCase().trim())
+const canJoin = computed(() => normalizedJoinCode.value.length === 6)
 </script>
 
 <template>
@@ -64,12 +65,12 @@ const normalizedJoinCode = computed(() => joinCode.value.toUpperCase().trim())
       </template>
 
       <div class="flex flex-col gap-4 sm:flex-row">
-        <UInput v-model="joinCode" placeholder="Enter room code" class="sm:max-w-sm" />
-        <div class="flex gap-2">
-          <UButton :to="`/controller/${normalizedJoinCode}`" :disabled="normalizedJoinCode.length !== 6">
+          <UInput v-model="joinCode" placeholder="Enter room code" class="sm:max-w-sm" />
+          <div class="flex gap-2">
+          <UButton :to="canJoin ? `/controller/${normalizedJoinCode}` : undefined" :disabled="!canJoin">
             Controller
           </UButton>
-          <UButton :to="`/display/${normalizedJoinCode}`" :disabled="normalizedJoinCode.length !== 6" variant="soft">
+          <UButton :to="canJoin ? `/display/${normalizedJoinCode}` : undefined" :disabled="!canJoin" variant="soft">
             Display
           </UButton>
         </div>

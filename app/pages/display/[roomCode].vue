@@ -9,13 +9,6 @@ const { connected, error, state } = useTeleprompterSocket(roomCode, 'display')
 
 const renderedHtml = computed(() => renderMarkdown(state.value?.scriptMarkdown ?? ''))
 const segments = computed(() => markdownSegments(state.value?.scriptMarkdown ?? ''))
-const currentSegment = computed(() => {
-  if (!state.value) {
-    return ''
-  }
-
-  return segments.value[state.value.playback.stepIndex] ?? segments.value.at(-1) ?? ''
-})
 
 const scrollOffset = ref(0)
 let rafHandle = 0
@@ -84,27 +77,46 @@ watch(
       <UBadge v-if="state" variant="soft">{{ roomCode }}</UBadge>
     </div>
 
-    <div
-      v-if="state?.playback.mode === 'auto'"
-      class="mx-auto h-full max-w-6xl px-8 pb-24 pt-[40vh]"
-      :style="{
-        transform: `translateY(-${scrollOffset}px)`,
-        fontSize: `${state.display.fontSize}px`,
-        lineHeight: String(state.display.lineSpacing)
-      }"
-    >
-      <div class="prose prose-invert max-w-none dark:prose-invert" v-html="renderedHtml" />
-    </div>
+    <template v-if="state">
+      <div
+        v-if="state.playback.mode === 'auto'"
+        class="mx-auto h-full max-w-6xl px-8 pb-24 pt-[40vh]"
+        :style="{
+          transform: `translateY(-${scrollOffset}px)`,
+          fontSize: `${state.display.fontSize}px`,
+          lineHeight: String(state.display.lineSpacing)
+        }"
+      >
+        <div class="prose prose-invert max-w-none dark:prose-invert" v-html="renderedHtml" />
+      </div>
 
-    <div
-      v-else
-      class="mx-auto flex h-full max-w-6xl items-center justify-center px-12 text-center"
-      :style="{
-        fontSize: `${state.display.fontSize}px`,
-        lineHeight: String(state.display.lineSpacing)
-      }"
-    >
-      <p>{{ currentSegment }}</p>
+      <div
+        v-else
+        class="mx-auto flex h-full max-w-6xl items-center justify-center px-12 text-center"
+        :style="{
+          fontSize: `${state.display.fontSize}px`,
+          lineHeight: String(state.display.lineSpacing)
+        }"
+      >
+        <UScrollArea class="h-[70vh] w-full rounded border border-default p-6">
+          <div class="space-y-4">
+            <p
+              v-for="(segment, index) in segments"
+              :key="`${index}-${segment}`"
+              :class="[
+                'transition-opacity',
+                index === state.playback.stepIndex ? 'opacity-100 font-semibold' : 'opacity-45'
+              ]"
+            >
+              {{ segment }}
+            </p>
+          </div>
+        </UScrollArea>
+      </div>
+    </template>
+
+    <div v-else class="mx-auto flex h-full max-w-6xl items-center justify-center px-12 text-center">
+      <p class="text-lg text-muted">Waiting for session state…</p>
     </div>
 
     <UAlert v-if="error" color="error" variant="soft" :title="error" class="absolute bottom-4 left-4 right-4" />
