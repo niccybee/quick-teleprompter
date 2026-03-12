@@ -13,7 +13,8 @@ export const DEFAULT_PLAYBACK: PlaybackState = {
   mode: 'auto',
   speedWpm: 120,
   isPlaying: false,
-  stepIndex: 0
+  stepIndex: 0,
+  scrollProgress: 0
 }
 
 export const DEFAULT_DISPLAY: DisplayState = {
@@ -51,11 +52,15 @@ export function clampPlayback(
   current: PlaybackState,
   updates: PlaybackUpdatePayload
 ): PlaybackState {
+  const mode = updates.mode ?? current.mode
+  const isPlaying = mode === 'auto' ? (updates.isPlaying ?? current.isPlaying) : false
+
   return {
-    mode: updates.mode ?? current.mode,
-    isPlaying: updates.isPlaying ?? current.isPlaying,
+    mode,
+    isPlaying,
     speedWpm: clampNumber(updates.speedWpm ?? current.speedWpm, 20, 600),
-    stepIndex: Math.max(0, Math.round(updates.stepIndex ?? current.stepIndex))
+    stepIndex: Math.max(0, Math.round(updates.stepIndex ?? current.stepIndex)),
+    scrollProgress: clampNumber(updates.scrollProgress ?? current.scrollProgress, 0, 1)
   }
 }
 
@@ -80,7 +85,7 @@ export function applyStepIndex(direction: 'next' | 'prev', stepIndex: number): n
 }
 
 function normalizeTheme(theme: ThemeMode): ThemeMode {
-  if (theme === 'light' || theme === 'dark' || theme === 'system') {
+  if (theme === 'light' || theme === 'dark' || theme === 'system' || theme === 'jetblack') {
     return theme
   }
 

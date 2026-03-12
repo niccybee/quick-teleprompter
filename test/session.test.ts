@@ -23,13 +23,15 @@ describe('session helpers', () => {
 
   it('clamps playback state', () => {
     const state = clampPlayback(
-      { mode: 'auto', speedWpm: 100, isPlaying: true, stepIndex: 2 },
-      { speedWpm: 1000, stepIndex: -1, mode: 'step' }
+      { mode: 'auto', speedWpm: 100, isPlaying: true, stepIndex: 2, scrollProgress: 0.5 },
+      { speedWpm: 1000, stepIndex: -1, mode: 'step', scrollProgress: 2 }
     )
 
     expect(state.mode).toBe('step')
+    expect(state.isPlaying).toBe(false)
     expect(state.speedWpm).toBe(600)
     expect(state.stepIndex).toBe(0)
+    expect(state.scrollProgress).toBe(1)
   })
 
   it('clamps display state', () => {

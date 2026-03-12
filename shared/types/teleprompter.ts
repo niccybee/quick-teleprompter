@@ -1,13 +1,14 @@
 export type SessionRole = 'controller' | 'display'
 export type RenderMode = 'markdown'
-export type PlaybackMode = 'auto' | 'step'
-export type ThemeMode = 'light' | 'dark' | 'system'
+export type PlaybackMode = 'auto' | 'step' | 'scroll'
+export type ThemeMode = 'light' | 'dark' | 'system' | 'jetblack'
 
 export interface PlaybackState {
   mode: PlaybackMode
   speedWpm: number
   isPlaying: boolean
   stepIndex: number
+  scrollProgress: number
 }
 
 export interface DisplayState {
@@ -47,6 +48,7 @@ export interface PlaybackUpdatePayload {
   speedWpm?: number
   isPlaying?: boolean
   stepIndex?: number
+  scrollProgress?: number
 }
 
 export interface DisplayUpdatePayload {
