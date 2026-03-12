@@ -1,12 +1,38 @@
 @import "tailwindcss";
 @import "@nuxt/ui";
 
+@theme {
+  --font-sans: "DM Sans", sans-serif;
+}
+
 :root {
-  color-scheme: light dark;
+  color-scheme: dark;
+  --ui-radius: 0.125rem;
+  --ui-primary: white;
 }
 
 html,
 body,
 #__nuxt {
   min-height: 100%;
+}
+
+:root,
+.light,
+.dark {
+  --ui-bg: black;
+  --ui-bg-muted: var(--ui-color-neutral-950);
+  --ui-bg-elevated: var(--ui-color-neutral-900);
+  --ui-bg-accented: var(--ui-color-neutral-800);
+  --ui-text: var(--ui-color-neutral-100);
+  --ui-text-toned: var(--ui-color-neutral-300);
+  --ui-text-muted: var(--ui-color-neutral-400);
+  --ui-text-highlighted: white;
+  --ui-border: var(--ui-color-neutral-800);
+  --ui-border-muted: var(--ui-color-neutral-900);
+}
+
+body {
+  background: black;
+  color: var(--ui-text-highlighted);
 }
