@@ -329,6 +329,7 @@ watch(
               <div class="flex gap-2">
                 <UButton variant="soft" @click="setTheme('light')">Light</UButton>
                 <UButton variant="soft" @click="setTheme('dark')">Dark</UButton>
+                <UButton variant="soft" @click="setTheme('jetblack')">Jet Black</UButton>
                 <UButton variant="soft" @click="setTheme('system')">System</UButton>
               </div>
             </div>
@@ -387,6 +388,7 @@ watch(
                 </UButton>
                 <UButton size="sm" variant="soft" @click="setTheme('light')">Light</UButton>
                 <UButton size="sm" variant="soft" @click="setTheme('dark')">Dark</UButton>
+                <UButton size="sm" variant="soft" @click="setTheme('jetblack')">Jet Black</UButton>
                 <UButton size="sm" variant="soft" @click="setTheme('system')">System</UButton>
               </div>
             </details>

@@ -85,7 +85,7 @@ export function applyStepIndex(direction: 'next' | 'prev', stepIndex: number): n
 }
 
 function normalizeTheme(theme: ThemeMode): ThemeMode {
-  if (theme === 'light' || theme === 'dark' || theme === 'system') {
+  if (theme === 'light' || theme === 'dark' || theme === 'system' || theme === 'jetblack') {
     return theme
   }
 

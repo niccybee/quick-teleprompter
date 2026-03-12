@@ -16,7 +16,7 @@ interface SessionRow {
   step_index: number
   scroll_progress: number
   mirror: number
-  theme: 'light' | 'dark' | 'system'
+  theme: 'light' | 'dark' | 'system' | 'jetblack'
   controllers: number
   displays: number
   updated_at: string

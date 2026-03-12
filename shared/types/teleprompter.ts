@@ -1,7 +1,7 @@
 export type SessionRole = 'controller' | 'display'
 export type RenderMode = 'markdown'
 export type PlaybackMode = 'auto' | 'step' | 'scroll'
-export type ThemeMode = 'light' | 'dark' | 'system'
+export type ThemeMode = 'light' | 'dark' | 'system' | 'jetblack'
 
 export interface PlaybackState {
   mode: PlaybackMode
