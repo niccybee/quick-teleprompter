@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import type { ThemeMode } from '#shared/types/teleprompter'
+import type { PlaybackMode, ThemeMode } from '#shared/types/teleprompter'
 import { renderMarkdown } from '~/utils/markdown'
 
 const route = useRoute()
@@ -18,8 +18,11 @@ const {
 const markdown = ref('')
 const googleDocUrl = ref('')
 const importPending = ref(false)
-const controlsOpen = ref(false)
-const previewMinimized = ref(false)
+const scrollPreviewRef = ref<HTMLElement | null>(null)
+const suppressPreviewSync = ref(false)
+let previewSyncFrame = 0
+let previewSendFrame = 0
+let pendingProgress = 0
 
 watch(
   () => state.value?.scriptMarkdown,
@@ -63,6 +66,11 @@ const setTheme = (theme: ThemeMode) => {
   updateDisplay({ theme })
 }
 
+const setPlaybackMode = (mode: PlaybackMode) => {
+  const isPlaying = mode === 'auto' ? (state.value?.playback.isPlaying ?? false) : false
+  updatePlayback({ mode, isPlaying })
+}
+
 const reduceSpeed = () => {
   if (!state.value) {
     return
@@ -72,7 +80,7 @@ const reduceSpeed = () => {
 }
 
 const play = () => {
-  updatePlayback({ isPlaying: true })
+  updatePlayback({ mode: 'auto', isPlaying: true })
 }
 
 const pause = () => {
@@ -80,14 +88,115 @@ const pause = () => {
 }
 
 const reset = () => {
-  updatePlayback({ isPlaying: false, stepIndex: 0 })
+  updatePlayback({ isPlaying: false, stepIndex: 0, scrollProgress: 0 })
 }
 
-const previewHtml = computed(() => renderMarkdown(markdown.value))
+const modeIsScroll = computed(() => state.value?.playback.mode === 'scroll')
+const modeIsStep = computed(() => state.value?.playback.mode === 'step')
+const modeIsAuto = computed(() => state.value?.playback.mode === 'auto')
+const previewHtml = computed(() => renderMarkdown(state.value?.scriptMarkdown ?? ''))
+
+const setPreviewScrollFromProgress = (progress: number) => {
+  const element = scrollPreviewRef.value
+  if (!element) {
+    return
+  }
+
+  const max = Math.max(0, element.scrollHeight - element.clientHeight)
+  suppressPreviewSync.value = true
+  element.scrollTop = max * Math.min(1, Math.max(0, progress))
+
+  cancelAnimationFrame(previewSyncFrame)
+  previewSyncFrame = requestAnimationFrame(() => {
+    suppressPreviewSync.value = false
+  })
+}
+
+const emitPreviewProgress = (progress: number) => {
+  pendingProgress = progress
+
+  if (previewSendFrame) {
+    return
+  }
+
+  previewSendFrame = requestAnimationFrame(() => {
+    updatePlayback({ scrollProgress: pendingProgress, isPlaying: false })
+    previewSendFrame = 0
+  })
+}
+
+const onPreviewScroll = () => {
+  if (!modeIsScroll.value || suppressPreviewSync.value) {
+    return
+  }
+
+  const element = scrollPreviewRef.value
+  if (!element) {
+    return
+  }
+
+  const max = Math.max(0, element.scrollHeight - element.clientHeight)
+  const progress = max > 0 ? element.scrollTop / max : 0
+  emitPreviewProgress(progress)
+}
+
+const preventScrollShortcuts = (event: KeyboardEvent) => {
+  if (!modeIsScroll.value) {
+    return
+  }
+
+  if ([
+    'ArrowUp',
+    'ArrowDown',
+    'ArrowLeft',
+    'ArrowRight',
+    ' ',
+    'PageUp',
+    'PageDown',
+    'Home',
+    'End'
+  ].includes(event.key)) {
+    event.preventDefault()
+  }
+}
+
+onMounted(() => {
+  window.addEventListener('keydown', preventScrollShortcuts, { passive: false })
+})
+
+onBeforeUnmount(() => {
+  window.removeEventListener('keydown', preventScrollShortcuts)
+  cancelAnimationFrame(previewSyncFrame)
+  cancelAnimationFrame(previewSendFrame)
+})
+
+watch(
+  () => state.value?.playback.scrollProgress,
+  (progress) => {
+    if (typeof progress !== 'number') {
+      return
+    }
+
+    nextTick(() => {
+      setPreviewScrollFromProgress(progress)
+    })
+  },
+  { immediate: true }
+)
+
+watch(
+  () => [state.value?.scriptMarkdown, state.value?.display.fontSize, state.value?.display.lineSpacing],
+  () => {
+    const progress = state.value?.playback.scrollProgress ?? 0
+    nextTick(() => {
+      setPreviewScrollFromProgress(progress)
+    })
+  }
+)
 </script>
 
 <template>
-  <main class="mx-auto flex min-h-screen w-full max-w-6xl flex-col gap-4 p-4">
+  <main class="mx-auto flex min-h-screen w-full max-w-7xl flex-col gap-4 p-4">
     <UCard>
       <template #header>
         <div class="flex flex-wrap items-center justify-between gap-2">
@@ -101,126 +210,191 @@ const previewHtml = computed(() => renderMarkdown(markdown.value))
         </div>
       </template>
 
-      <div class="grid gap-4 lg:grid-cols-2">
-        <UCard>
-          <template #header>
-            <h2 class="font-medium">Script</h2>
-          </template>
+      <UCard>
+        <template #header>
+          <h2 class="font-medium">Script</h2>
+        </template>
 
-          <div class="space-y-3">
-            <UScrollArea class="h-[24rem] rounded border border-default p-2">
-              <UTextarea v-model="markdown" :rows="16" autoresize class="w-full" />
-            </UScrollArea>
-            <div class="flex flex-wrap gap-2">
-              <UButton @click="submitMarkdown">Load to Display</UButton>
-              <UInput v-model="googleDocUrl" placeholder="Google Doc URL" class="min-w-72" />
-              <UButton :loading="importPending" variant="soft" @click="importGoogleDoc">Import Doc</UButton>
-              <UButton variant="outline" @click="controlsOpen = true">Open Controls</UButton>
-            </div>
+        <div class="space-y-3">
+          <UScrollArea class="h-[24rem] rounded border border-default p-2">
+            <UTextarea v-model="markdown" :rows="16" autoresize class="w-full" />
+          </UScrollArea>
+          <div class="flex flex-wrap gap-2">
+            <UButton @click="submitMarkdown">Load to Display</UButton>
+            <UInput v-model="googleDocUrl" placeholder="Google Doc URL" class="min-w-72" />
+            <UButton :loading="importPending" variant="soft" @click="importGoogleDoc">Import Doc</UButton>
           </div>
-        </UCard>
-      </div>
-
-      <UAlert v-if="error" color="error" variant="soft" :title="error" class="mt-4" />
+        </div>
+      </UCard>
     </UCard>
 
-    <UModal v-model:open="controlsOpen" title="Controller Controls" description="Adjust playback and display settings">
-      <template #body>
-        <div v-if="state" class="space-y-6">
+    <div
+      v-if="state"
+      class="grid gap-4"
+      :class="modeIsScroll ? 'lg:grid-cols-[minmax(20rem,25rem)_1fr]' : 'lg:grid-cols-1'"
+    >
+      <UCard v-if="modeIsScroll" class="order-1 lg:order-2">
+        <template #header>
+          <div class="flex items-center justify-between gap-2">
+            <h2 class="font-medium">Scroll Preview (Mirrored Display)</h2>
+            <UBadge variant="soft">Touch / wheel / drag</UBadge>
+          </div>
+        </template>
+
+        <div
+          ref="scrollPreviewRef"
+          class="h-[68vh] overflow-y-auto rounded border border-default p-3 lg:h-[74vh]"
+          style="touch-action: pan-y; -webkit-overflow-scrolling: touch;"
+          @scroll="onPreviewScroll"
+        >
+          <div
+            class="mx-auto max-w-4xl px-4 pb-16 pt-[30vh]"
+            :class="state.display.mirror ? '-scale-x-100' : ''"
+            :style="{
+              fontSize: `${Math.max(14, state.display.fontSize * 0.45)}px`,
+              lineHeight: String(state.display.lineSpacing)
+            }"
+          >
+            <div class="prose prose-invert max-w-none dark:prose-invert" v-html="previewHtml" />
+          </div>
+        </div>
+      </UCard>
+
+      <UCard class="order-2 lg:order-1">
+        <template #header>
+          <h2 class="font-medium">Controls</h2>
+        </template>
+
+        <div class="space-y-6">
           <div class="space-y-2">
             <p class="text-sm text-muted">Playback mode</p>
-            <div class="flex gap-2">
-              <UButton
-                :variant="state.playback.mode === 'auto' ? 'solid' : 'soft'"
-                @click="updatePlayback({ mode: 'auto' })"
-              >
-                Auto Scroll
-              </UButton>
-              <UButton
-                :variant="state.playback.mode === 'step' ? 'solid' : 'soft'"
-                @click="updatePlayback({ mode: 'step' })"
-              >
-                Step
-              </UButton>
+            <div class="flex flex-wrap gap-2">
+              <UButton :variant="modeIsAuto ? 'solid' : 'soft'" @click="setPlaybackMode('auto')">Autoplay</UButton>
+              <UButton :variant="modeIsStep ? 'solid' : 'soft'" @click="setPlaybackMode('step')">Step</UButton>
+              <UButton :variant="modeIsScroll ? 'solid' : 'soft'" @click="setPlaybackMode('scroll')">Scroll</UButton>
             </div>
           </div>
 
-          <div class="space-y-2">
-            <div class="flex items-center justify-between">
-              <p class="text-sm text-muted">Speed (WPM): {{ state.playback.speedWpm }}</p>
-              <UButton size="xs" variant="soft" @click="reduceSpeed">Slow Down -10</UButton>
-            </div>
-            <USlider
-              :model-value="state.playback.speedWpm"
-              :min="20"
-              :max="300"
-              :step="5"
-              @update:model-value="(v) => updatePlayback({ speedWpm: Number(v) })"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <p class="text-sm text-muted">Text Size: {{ state.display.fontSize }}px</p>
-            <USlider
-              :model-value="state.display.fontSize"
-              :min="20"
-              :max="120"
-              :step="1"
-              @update:model-value="(v) => updateDisplay({ fontSize: Number(v) })"
-            />
-          </div>
-
-          <div class="space-y-2">
-            <p class="text-sm text-muted">Line Spacing: {{ state.display.lineSpacing.toFixed(1) }}</p>
-            <USlider
-              :model-value="state.display.lineSpacing"
-              :min="1"
-              :max="3"
-              :step="0.1"
-              @update:model-value="(v) => updateDisplay({ lineSpacing: Number(v) })"
-            />
-          </div>
-
-          <div class="flex flex-wrap gap-2">
-            <UButton @click="play">Play</UButton>
-            <UButton variant="soft" @click="pause">Pause</UButton>
-            <UButton color="warning" variant="soft" @click="reset">Reset</UButton>
-            <UButton variant="soft" @click="stepPlayback({ direction: 'prev' })">Step Prev</UButton>
-            <UButton variant="soft" @click="stepPlayback({ direction: 'next' })">Step Next</UButton>
-            <UButton variant="soft" @click="updateDisplay({ mirror: !state.display.mirror })">
-              Mirror: {{ state.display.mirror ? 'On' : 'Off' }}
-            </UButton>
-          </div>
-
-          <div class="space-y-2">
-            <p class="text-sm text-muted">Theme</p>
-            <div class="flex gap-2">
-              <UButton variant="soft" @click="setTheme('light')">Light</UButton>
-              <UButton variant="soft" @click="setTheme('dark')">Dark</UButton>
-              <UButton variant="soft" @click="setTheme('system')">System</UButton>
-            </div>
-          </div>
-
-          <UCard>
-            <template #header>
-              <div class="flex items-center justify-between gap-2">
-                <h3 class="font-medium">Preview</h3>
-                <UButton
-                  size="xs"
-                  variant="soft"
-                  @click="previewMinimized = !previewMinimized"
-                >
-                  {{ previewMinimized ? 'Expand' : 'Minimize' }}
-                </UButton>
+          <div class="hidden space-y-6 lg:block">
+            <div class="space-y-2">
+              <div class="flex items-center justify-between">
+                <p class="text-sm text-muted">Speed (WPM): {{ state.playback.speedWpm }}</p>
+                <UButton size="xs" variant="soft" :disabled="modeIsScroll" @click="reduceSpeed">Slow Down -10</UButton>
               </div>
-            </template>
+              <USlider
+                :model-value="state.playback.speedWpm"
+                :min="20"
+                :max="300"
+                :step="5"
+                :disabled="modeIsScroll"
+                @update:model-value="(v) => updatePlayback({ speedWpm: Number(v) })"
+              />
+            </div>
 
-            <UScrollArea v-if="!previewMinimized" class="h-48 rounded border border-default p-3">
-              <div class="prose prose-sm max-w-none dark:prose-invert" v-html="previewHtml" />
-            </UScrollArea>
-          </UCard>
+            <div class="space-y-2">
+              <p class="text-sm text-muted">Text Size: {{ state.display.fontSize }}px</p>
+              <USlider
+                :model-value="state.display.fontSize"
+                :min="20"
+                :max="120"
+                :step="1"
+                @update:model-value="(v) => updateDisplay({ fontSize: Number(v) })"
+              />
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-sm text-muted">Line Spacing: {{ state.display.lineSpacing.toFixed(1) }}</p>
+              <USlider
+                :model-value="state.display.lineSpacing"
+                :min="1"
+                :max="3"
+                :step="0.1"
+                @update:model-value="(v) => updateDisplay({ lineSpacing: Number(v) })"
+              />
+            </div>
+
+            <div class="flex flex-wrap gap-2">
+              <UButton :disabled="!modeIsAuto" @click="play">Play</UButton>
+              <UButton variant="soft" :disabled="!modeIsAuto" @click="pause">Pause</UButton>
+              <UButton color="warning" variant="soft" @click="reset">Reset</UButton>
+              <UButton variant="soft" :disabled="!modeIsStep" @click="stepPlayback({ direction: 'prev' })">Step Prev</UButton>
+              <UButton variant="soft" :disabled="!modeIsStep" @click="stepPlayback({ direction: 'next' })">Step Next</UButton>
+              <UButton variant="soft" @click="updateDisplay({ mirror: !state.display.mirror })">
+                Mirror: {{ state.display.mirror ? 'On' : 'Off' }}
+              </UButton>
+            </div>
+
+            <div class="space-y-2">
+              <p class="text-sm text-muted">Theme</p>
+              <div class="flex gap-2">
+                <UButton variant="soft" @click="setTheme('light')">Light</UButton>
+                <UButton variant="soft" @click="setTheme('dark')">Dark</UButton>
+                <UButton variant="soft" @click="setTheme('system')">System</UButton>
+              </div>
+            </div>
+          </div>
+
+          <div class="space-y-3 lg:hidden">
+            <details class="rounded border border-default p-3">
+              <summary class="cursor-pointer text-sm font-medium">Playback Controls</summary>
+              <div class="mt-3 space-y-3">
+                <p class="text-sm text-muted">Speed (WPM): {{ state.playback.speedWpm }}</p>
+                <USlider
+                  :model-value="state.playback.speedWpm"
+                  :min="20"
+                  :max="300"
+                  :step="5"
+                  :disabled="modeIsScroll"
+                  @update:model-value="(v) => updatePlayback({ speedWpm: Number(v) })"
+                />
+                <div class="flex flex-wrap gap-2">
+                  <UButton size="sm" :disabled="!modeIsAuto" @click="play">Play</UButton>
+                  <UButton size="sm" variant="soft" :disabled="!modeIsAuto" @click="pause">Pause</UButton>
+                  <UButton size="sm" color="warning" variant="soft" @click="reset">Reset</UButton>
+                  <UButton size="sm" variant="soft" :disabled="!modeIsStep" @click="stepPlayback({ direction: 'prev' })">Prev</UButton>
+                  <UButton size="sm" variant="soft" :disabled="!modeIsStep" @click="stepPlayback({ direction: 'next' })">Next</UButton>
+                </div>
+              </div>
+            </details>
+
+            <details class="rounded border border-default p-3">
+              <summary class="cursor-pointer text-sm font-medium">Typography</summary>
+              <div class="mt-3 space-y-3">
+                <p class="text-sm text-muted">Text Size: {{ state.display.fontSize }}px</p>
+                <USlider
+                  :model-value="state.display.fontSize"
+                  :min="20"
+                  :max="120"
+                  :step="1"
+                  @update:model-value="(v) => updateDisplay({ fontSize: Number(v) })"
+                />
+                <p class="text-sm text-muted">Line Spacing: {{ state.display.lineSpacing.toFixed(1) }}</p>
+                <USlider
+                  :model-value="state.display.lineSpacing"
+                  :min="1"
+                  :max="3"
+                  :step="0.1"
+                  @update:model-value="(v) => updateDisplay({ lineSpacing: Number(v) })"
+                />
+              </div>
+            </details>
+
+            <details class="rounded border border-default p-3">
+              <summary class="cursor-pointer text-sm font-medium">Display Settings</summary>
+              <div class="mt-3 flex flex-wrap gap-2">
+                <UButton size="sm" variant="soft" @click="updateDisplay({ mirror: !state.display.mirror })">
+                  Mirror: {{ state.display.mirror ? 'On' : 'Off' }}
+                </UButton>
+                <UButton size="sm" variant="soft" @click="setTheme('light')">Light</UButton>
+                <UButton size="sm" variant="soft" @click="setTheme('dark')">Dark</UButton>
+                <UButton size="sm" variant="soft" @click="setTheme('system')">System</UButton>
+              </div>
+            </details>
+          </div>
         </div>
-      </template>
-    </UModal>
+      </UCard>
+    </div>
+
+    <UAlert v-if="error" color="error" variant="soft" :title="error" class="mt-4" />
   </main>
 </template>

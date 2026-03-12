@@ -11,9 +11,10 @@ interface SessionRow {
   font_size: number
   line_spacing: number
   speed_wpm: number
-  playback_mode: 'auto' | 'step'
+  playback_mode: 'auto' | 'step' | 'scroll'
   is_playing: number
   step_index: number
+  scroll_progress: number
   mirror: number
   theme: 'light' | 'dark' | 'system'
   controllers: number
@@ -52,6 +53,7 @@ function migrate(database: Database.Database): void {
       playback_mode TEXT NOT NULL,
       is_playing INTEGER NOT NULL,
       step_index INTEGER NOT NULL,
+      scroll_progress REAL NOT NULL DEFAULT 0,
       mirror INTEGER NOT NULL,
       theme TEXT NOT NULL,
       controllers INTEGER NOT NULL DEFAULT 0,
@@ -62,6 +64,8 @@ function migrate(database: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_sessions_updated_at ON sessions(updated_at);
   `)
+
+  ensureColumn(database, 'sessions', 'scroll_progress', 'REAL NOT NULL DEFAULT 0')
 }
 
 export function upsertSession(state: TeleprompterState): void {
@@ -70,11 +74,11 @@ export function upsertSession(state: TeleprompterState): void {
       `
       INSERT INTO sessions (
         room_code, script_markdown, render_mode, font_size, line_spacing,
-        speed_wpm, playback_mode, is_playing, step_index, mirror, theme,
+        speed_wpm, playback_mode, is_playing, step_index, scroll_progress, mirror, theme,
         controllers, displays, created_at, updated_at
       ) VALUES (
         @roomCode, @scriptMarkdown, @renderMode, @fontSize, @lineSpacing,
-        @speedWpm, @playbackMode, @isPlaying, @stepIndex, @mirror, @theme,
+        @speedWpm, @playbackMode, @isPlaying, @stepIndex, @scrollProgress, @mirror, @theme,
         @controllers, @displays, @createdAt, @updatedAt
       )
       ON CONFLICT(room_code) DO UPDATE SET
@@ -86,6 +90,7 @@ export function upsertSession(state: TeleprompterState): void {
         playback_mode=excluded.playback_mode,
         is_playing=excluded.is_playing,
         step_index=excluded.step_index,
+        scroll_progress=excluded.scroll_progress,
         mirror=excluded.mirror,
         theme=excluded.theme,
         controllers=excluded.controllers,
@@ -103,6 +108,7 @@ export function upsertSession(state: TeleprompterState): void {
       playbackMode: state.playback.mode,
       isPlaying: state.playback.isPlaying ? 1 : 0,
       stepIndex: state.playback.stepIndex,
+      scrollProgress: state.playback.scrollProgress,
       mirror: state.display.mirror ? 1 : 0,
       theme: state.display.theme,
       controllers: state.presence.controllers,
@@ -159,7 +165,8 @@ function mapRowToState(row: SessionRow): TeleprompterState {
       mode: row.playback_mode,
       speedWpm: row.speed_wpm,
       isPlaying: Boolean(row.is_playing),
-      stepIndex: row.step_index
+      stepIndex: row.step_index,
+      scrollProgress: row.scroll_progress
     },
     display: {
       fontSize: row.font_size,
@@ -173,4 +180,21 @@ function mapRowToState(row: SessionRow): TeleprompterState {
     },
     updatedAt: row.updated_at
   }
+}
+
+function ensureColumn(
+  database: Database.Database,
+  tableName: string,
+  columnName: string,
+  columnDef: string
+): void {
+  const columns = database
+    .prepare(`PRAGMA table_info(${tableName})`)
+    .all() as Array<{ name: string }>
+
+  if (columns.some((column) => column.name === columnName)) {
+    return
+  }
+
+  database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`)
 }
