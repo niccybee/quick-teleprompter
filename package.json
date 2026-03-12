@@ -1,0 +1,30 @@
+{
+  "name": "teleprompter-app",
+  "private": true,
+  "type": "module",
+  "packageManager": "npm@10.9.2",
+  "scripts": {
+    "dev": "nuxt dev",
+    "build": "nuxt build",
+    "preview": "nuxt preview",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@nuxt/ui": "^4.0.0",
+    "@vite-pwa/nuxt": "^1.0.0",
+    "better-sqlite3": "^11.8.1",
+    "marked": "^15.0.7",
+    "nuxt": "^4.0.3",
+    "qrcode": "^1.5.4",
+    "sanitize-html": "^2.17.0",
+    "socket.io": "^4.8.1",
+    "socket.io-client": "^4.8.1"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.12",
+    "@types/qrcode": "^1.5.5",
+    "@types/sanitize-html": "^2.16.0",
+    "typescript": "^5.8.2",
+    "vitest": "^2.1.8"
+  }
+}
