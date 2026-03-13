@@ -20,9 +20,8 @@ const googleDocUrl = ref('')
 const importPending = ref(false)
 const scrollPreviewRef = ref<HTMLElement | null>(null)
 const suppressPreviewSync = ref(false)
-let previewSyncFrame = 0
-let previewSendFrame = 0
-let pendingProgress = 0
+const pendingWindowScrollY = ref<number | null>(null)
+const { y: previewY } = useScroll(scrollPreviewRef, { behavior: 'auto' })
 
 watch(
   () => state.value?.scriptMarkdown,
@@ -62,11 +61,34 @@ const importGoogleDoc = async () => {
   }
 }
 
+const captureWindowScroll = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  pendingWindowScrollY.value = window.scrollY
+}
+
+const restoreWindowScroll = async () => {
+  if (!import.meta.client || pendingWindowScrollY.value === null) {
+    return
+  }
+
+  const targetY = pendingWindowScrollY.value
+  await nextTick()
+  window.scrollTo({ top: targetY, behavior: 'auto' })
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: targetY, behavior: 'auto' })
+  })
+  pendingWindowScrollY.value = null
+}
+
 const setTheme = (theme: ThemeMode) => {
   updateDisplay({ theme })
 }
 
 const setPlaybackMode = (mode: PlaybackMode) => {
+  captureWindowScroll()
   const isPlaying = mode === 'auto' ? (state.value?.playback.isPlaying ?? false) : false
   updatePlayback({ mode, isPlaying })
 }
@@ -104,41 +126,29 @@ const setPreviewScrollFromProgress = (progress: number) => {
 
   const max = Math.max(0, element.scrollHeight - element.clientHeight)
   suppressPreviewSync.value = true
-  element.scrollTop = max * Math.min(1, Math.max(0, progress))
-
-  cancelAnimationFrame(previewSyncFrame)
-  previewSyncFrame = requestAnimationFrame(() => {
+  previewY.value = max * Math.min(1, Math.max(0, progress))
+  nextTick(() => {
     suppressPreviewSync.value = false
   })
 }
 
-const emitPreviewProgress = (progress: number) => {
-  pendingProgress = progress
+const emitPreviewProgress = useThrottleFn((progress: number) => {
+  updatePlayback({ scrollProgress: progress, isPlaying: false })
+}, 16)
 
-  if (previewSendFrame) {
-    return
-  }
-
-  previewSendFrame = requestAnimationFrame(() => {
-    updatePlayback({ scrollProgress: pendingProgress, isPlaying: false })
-    previewSendFrame = 0
-  })
-}
-
-const onPreviewScroll = () => {
+watch(previewY, () => {
   if (!modeIsScroll.value || suppressPreviewSync.value) {
     return
   }
-
   const element = scrollPreviewRef.value
   if (!element) {
     return
   }
 
   const max = Math.max(0, element.scrollHeight - element.clientHeight)
-  const progress = max > 0 ? element.scrollTop / max : 0
+  const progress = max > 0 ? previewY.value / max : 0
   emitPreviewProgress(progress)
-}
+})
 
 const preventScrollShortcuts = (event: KeyboardEvent) => {
   if (!modeIsScroll.value) {
@@ -160,15 +170,7 @@ const preventScrollShortcuts = (event: KeyboardEvent) => {
   }
 }
 
-onMounted(() => {
-  window.addEventListener('keydown', preventScrollShortcuts, { passive: false })
-})
-
-onBeforeUnmount(() => {
-  window.removeEventListener('keydown', preventScrollShortcuts)
-  cancelAnimationFrame(previewSyncFrame)
-  cancelAnimationFrame(previewSendFrame)
-})
+useEventListener(window, 'keydown', preventScrollShortcuts, { passive: false })
 
 watch(
   () => state.value?.playback.scrollProgress,
@@ -182,6 +184,13 @@ watch(
     })
   },
   { immediate: true }
+)
+
+watch(
+  () => state.value?.playback.mode,
+  () => {
+    void restoreWindowScroll()
+  }
 )
 
 watch(
@@ -245,7 +254,6 @@ watch(
           ref="scrollPreviewRef"
           class="h-[68vh] overflow-y-auto rounded border border-default p-3 lg:h-[74vh]"
           style="touch-action: pan-y; -webkit-overflow-scrolling: touch;"
-          @scroll="onPreviewScroll"
         >
           <div
             class="mx-auto max-w-4xl px-4 pb-16 pt-[30vh]"

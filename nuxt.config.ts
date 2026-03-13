@@ -1,7 +1,7 @@
 export default defineNuxtConfig({
   compatibilityDate: '2025-12-01',
   devtools: { enabled: true },
-  modules: ['@nuxt/ui', '@vite-pwa/nuxt'],
+  modules: ['@nuxt/ui', '@vite-pwa/nuxt', '@vueuse/nuxt'],
   css: ['~/assets/css/main.css'],
   nitro: {
     experimental: {

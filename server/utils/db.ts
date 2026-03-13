@@ -182,19 +182,42 @@ function mapRowToState(row: SessionRow): TeleprompterState {
   }
 }
 
+function sanitizeSqlIdentifier(name: string): string {
+  // Allow only typical SQL identifier characters and ensure it starts with a letter or underscore.
+  if (!/^[A-Za-z_][A-Za-z0-9_]*$/.test(name)) {
+    throw new Error(`Invalid SQL identifier: ${name}`)
+  }
+  // Quote as SQLite identifier, escaping any embedded double quotes just in case.
+  const escaped = name.replace(/"/g, '""')
+  return `"${escaped}"`
+}
+
+function validateColumnDefinition(columnDef: string): string {
+  // Restrict to a conservative set of characters to avoid injection via column definitions.
+  // This still allows typical definitions like "INTEGER", "TEXT NOT NULL", "DEFAULT 0", etc.
+  if (!/^[A-Za-z0-9_(), ']+$/.test(columnDef)) {
+    throw new Error(`Invalid column definition: ${columnDef}`)
+  }
+  return columnDef
+}
+
 function ensureColumn(
   database: Database.Database,
   tableName: string,
   columnName: string,
   columnDef: string
 ): void {
+  const safeTableName = sanitizeSqlIdentifier(tableName)
+  const safeColumnName = sanitizeSqlIdentifier(columnName)
+  const safeColumnDef = validateColumnDefinition(columnDef)
+
   const columns = database
-    .prepare(`PRAGMA table_info(${tableName})`)
+    .prepare(`PRAGMA table_info(${safeTableName})`)
     .all() as Array<{ name: string }>
 
   if (columns.some((column) => column.name === columnName)) {
     return
   }
 
-  database.exec(`ALTER TABLE ${tableName} ADD COLUMN ${columnName} ${columnDef}`)
+  database.exec(`ALTER TABLE ${safeTableName} ADD COLUMN ${safeColumnName} ${safeColumnDef}`)
 }

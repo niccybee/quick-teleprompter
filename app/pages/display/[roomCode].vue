@@ -12,11 +12,17 @@ const segments = computed(() => markdownSegments(state.value?.scriptMarkdown ?? 
 
 const stageRef = ref<HTMLElement | null>(null)
 const contentRef = ref<HTMLElement | null>(null)
-const layoutVersion = ref(0)
+const contentScrollHeight = ref(0)
 const autoProgress = ref(0)
-let rafHandle = 0
-let lastTick = 0
-let resizeObserver: ResizeObserver | null = null
+const { height: stageHeight } = useElementSize(stageRef)
+const segmentRefs = useTemplateRefsList<HTMLElement>()
+
+const updateContentMetrics = () => {
+  contentScrollHeight.value = contentRef.value?.scrollHeight ?? 0
+}
+
+useResizeObserver(stageRef, updateContentMetrics)
+useResizeObserver(contentRef, updateContentMetrics)
 
 const pixelsPerSecond = computed(() => {
   if (!state.value || !state.value.playback.isPlaying || state.value.playback.mode !== 'auto') {
@@ -27,11 +33,7 @@ const pixelsPerSecond = computed(() => {
 })
 
 const maxScrollOffset = computed(() => {
-  layoutVersion.value
-
-  const stageHeight = stageRef.value?.clientHeight ?? 0
-  const contentHeight = contentRef.value?.scrollHeight ?? 0
-  return Math.max(0, contentHeight - stageHeight)
+  return Math.max(0, contentScrollHeight.value - stageHeight.value)
 })
 
 const clampedStateProgress = computed(() => {
@@ -56,25 +58,17 @@ const activeProgress = computed(() => {
 
 const scrollOffset = computed(() => maxScrollOffset.value * activeProgress.value)
 
-const tick = (time: number) => {
-  if (!lastTick) {
-    lastTick = time
-  }
-
-  const deltaSec = (time - lastTick) / 1000
-  lastTick = time
-
+const { pause: pauseRaf, resume: resumeRaf } = useRafFn(({ delta }) => {
   if (pixelsPerSecond.value > 0 && maxScrollOffset.value > 0) {
+    const deltaSec = delta / 1000
     const nextProgress = autoProgress.value + ((pixelsPerSecond.value * deltaSec) / maxScrollOffset.value)
     autoProgress.value = Math.min(1, Math.max(0, nextProgress))
   }
+}, { immediate: true })
 
-  rafHandle = requestAnimationFrame(tick)
-}
-
-const handleResize = () => {
-  layoutVersion.value += 1
-}
+tryOnScopeDispose(() => {
+  pauseRaf()
+})
 
 const preventScrollShortcuts = (event: KeyboardEvent) => {
   if (state.value?.playback.mode !== 'scroll') {
@@ -96,30 +90,7 @@ const preventScrollShortcuts = (event: KeyboardEvent) => {
   }
 }
 
-onMounted(() => {
-  rafHandle = requestAnimationFrame(tick)
-  window.addEventListener('resize', handleResize)
-  window.addEventListener('keydown', preventScrollShortcuts, { passive: false })
-
-  resizeObserver = new ResizeObserver(() => {
-    layoutVersion.value += 1
-  })
-
-  if (stageRef.value) {
-    resizeObserver.observe(stageRef.value)
-  }
-
-  if (contentRef.value) {
-    resizeObserver.observe(contentRef.value)
-  }
-})
-
-onBeforeUnmount(() => {
-  cancelAnimationFrame(rafHandle)
-  window.removeEventListener('resize', handleResize)
-  window.removeEventListener('keydown', preventScrollShortcuts)
-  resizeObserver?.disconnect()
-})
+useEventListener(window, 'keydown', preventScrollShortcuts, { passive: false })
 
 watch(
   () => state.value?.display.theme,
@@ -144,9 +115,39 @@ watch(
 watch(
   () => state.value?.playback.mode,
   (mode) => {
+    if (mode === 'auto') {
+      resumeRaf()
+    }
+    else {
+      pauseRaf()
+    }
+
     if (mode !== 'auto') {
       autoProgress.value = clampedStateProgress.value
     }
+  },
+  { immediate: true }
+)
+
+watch(
+  () => [renderedHtml.value, state.value?.display.fontSize, state.value?.display.lineSpacing],
+  async () => {
+    await nextTick()
+    updateContentMetrics()
+  },
+  { immediate: true }
+)
+
+watch(
+  () => state.value?.playback.stepIndex,
+  async (index) => {
+    if (state.value?.playback.mode !== 'step' || typeof index !== 'number') {
+      return
+    }
+
+    await nextTick()
+    const target = segmentRefs.value[index]
+    target?.scrollIntoView({ block: 'center', behavior: 'smooth' })
   }
 )
 </script>
@@ -180,26 +181,28 @@ watch(
 
       <div
         v-else
-        class="mx-auto flex h-full max-w-6xl items-center justify-center px-12 text-center"
-        :style="{
-          fontSize: `${state.display.fontSize}px`,
-          lineHeight: String(state.display.lineSpacing)
-        }"
+        ref="contentRef"
+        class="mx-auto h-full w-full max-w-6xl overflow-y-auto px-8 pb-24 pt-24"
       >
-        <UScrollArea class="h-[70vh] w-full rounded border border-default p-6">
-          <div class="space-y-4">
-            <p
-              v-for="(segment, index) in segments"
-              :key="`${index}-${segment}`"
-              :class="[
-                'transition-opacity',
-                index === state.playback.stepIndex ? 'opacity-100 font-semibold' : 'opacity-45'
-              ]"
-            >
-              {{ segment }}
-            </p>
-          </div>
-        </UScrollArea>
+        <div
+          class="flex min-h-full flex-col justify-center space-y-4 text-center"
+          :style="{
+            fontSize: `${state.display.fontSize}px`,
+            lineHeight: String(state.display.lineSpacing)
+          }"
+        >
+          <p
+            v-for="(segment, index) in segments"
+            :key="`${index}-${segment}`"
+            :ref="segmentRefs.set"
+            :class="[
+              'transition-opacity',
+              index === state.playback.stepIndex ? 'opacity-100 font-semibold' : 'opacity-45'
+            ]"
+          >
+            {{ segment }}
+          </p>
+        </div>
       </div>
     </template>
 

@@ -22,7 +22,14 @@ export function useTeleprompterSocket(roomCode: string, role: SessionRole) {
   const error = ref('')
   const state = ref<TeleprompterState | null>(null)
   const socket = shallowRef<WebSocket | null>(null)
-  let heartbeatTimer: ReturnType<typeof setInterval> | null = null
+
+  const { pause: pauseHeartbeat, resume: resumeHeartbeat } = useIntervalFn(
+    () => {
+      send('session:heartbeat', { roomCode, role })
+    },
+    20_000,
+    { immediate: false }
+  )
 
   const send = (type: string, payload: unknown = {}) => {
     if (!socket.value || socket.value.readyState !== WebSocket.OPEN) {
@@ -42,18 +49,12 @@ export function useTeleprompterSocket(roomCode: string, role: SessionRole) {
     socket.value.onopen = () => {
       connected.value = true
       error.value = ''
-
-      heartbeatTimer = setInterval(() => {
-        send('session:heartbeat', { roomCode, role })
-      }, 20_000)
+      resumeHeartbeat()
     }
 
     socket.value.onclose = () => {
       connected.value = false
-      if (heartbeatTimer) {
-        clearInterval(heartbeatTimer)
-        heartbeatTimer = null
-      }
+      pauseHeartbeat()
     }
 
     socket.value.onerror = () => {
@@ -84,11 +85,14 @@ export function useTeleprompterSocket(roomCode: string, role: SessionRole) {
   })
 
   onBeforeUnmount(() => {
-    if (heartbeatTimer) {
-      clearInterval(heartbeatTimer)
-      heartbeatTimer = null
+    if (socket.value) {
+      socket.value.close()
+      socket.value = null
     }
+  })
 
+  tryOnScopeDispose(() => {
+    pauseHeartbeat()
     if (socket.value) {
       socket.value.close()
       socket.value = null
