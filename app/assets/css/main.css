@@ -3,12 +3,58 @@
 
 :root {
   color-scheme: light dark;
+  --tele-grid: color-mix(in oklab, var(--ui-border) 55%, transparent);
 }
 
 html,
 body,
 #__nuxt {
   min-height: 100%;
+}
+
+body {
+  background:
+    radial-gradient(circle at top, color-mix(in oklab, var(--ui-primary) 14%, transparent), transparent 36%),
+    linear-gradient(180deg, color-mix(in oklab, var(--ui-bg) 94%, white 6%), var(--ui-bg));
+  color: var(--ui-text);
+}
+
+.tele-page {
+  position: relative;
+  isolation: isolate;
+}
+
+.tele-page::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -2;
+  pointer-events: none;
+  background:
+    radial-gradient(circle at 15% 15%, color-mix(in oklab, var(--ui-primary) 16%, transparent), transparent 26%),
+    radial-gradient(circle at 85% 0%, color-mix(in oklab, var(--ui-color-neutral-500) 16%, transparent), transparent 32%);
+}
+
+.tele-page::after {
+  content: "";
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  opacity: 0.4;
+  background-image:
+    linear-gradient(to right, var(--tele-grid) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--tele-grid) 1px, transparent 1px);
+  background-size: 64px 64px;
+  mask-image: linear-gradient(180deg, rgba(0, 0, 0, 0.85), transparent 92%);
+}
+
+.tele-glass {
+  border: 1px solid color-mix(in oklab, var(--ui-border) 84%, transparent);
+  background:
+    linear-gradient(180deg, color-mix(in oklab, var(--ui-bg-elevated) 88%, transparent), color-mix(in oklab, var(--ui-bg-muted) 76%, transparent));
+  box-shadow: 0 24px 80px rgba(15, 23, 42, 0.16);
+  backdrop-filter: blur(20px);
 }
 
 .jetblack {
@@ -22,8 +68,11 @@ body,
   --ui-text-toned: var(--ui-color-neutral-300);
   --ui-text-muted: var(--ui-color-neutral-400);
   --ui-text-highlighted: white;
+  --ui-text-inverted: var(--ui-color-neutral-950);
+  --ui-bg-inverted: white;
   --ui-border: var(--ui-color-neutral-800);
   --ui-border-muted: var(--ui-color-neutral-900);
+  --ui-border-inverted: white;
 }
 
 .jetblack body {
