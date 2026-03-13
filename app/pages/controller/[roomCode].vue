@@ -20,6 +20,7 @@ const googleDocUrl = ref('')
 const importPending = ref(false)
 const scrollPreviewRef = ref<HTMLElement | null>(null)
 const suppressPreviewSync = ref(false)
+const pendingWindowScrollY = ref<number | null>(null)
 const { y: previewY } = useScroll(scrollPreviewRef, { behavior: 'auto' })
 
 watch(
@@ -60,11 +61,34 @@ const importGoogleDoc = async () => {
   }
 }
 
+const captureWindowScroll = () => {
+  if (!import.meta.client) {
+    return
+  }
+
+  pendingWindowScrollY.value = window.scrollY
+}
+
+const restoreWindowScroll = async () => {
+  if (!import.meta.client || pendingWindowScrollY.value === null) {
+    return
+  }
+
+  const targetY = pendingWindowScrollY.value
+  await nextTick()
+  window.scrollTo({ top: targetY, behavior: 'auto' })
+  requestAnimationFrame(() => {
+    window.scrollTo({ top: targetY, behavior: 'auto' })
+  })
+  pendingWindowScrollY.value = null
+}
+
 const setTheme = (theme: ThemeMode) => {
   updateDisplay({ theme })
 }
 
 const setPlaybackMode = (mode: PlaybackMode) => {
+  captureWindowScroll()
   const isPlaying = mode === 'auto' ? (state.value?.playback.isPlaying ?? false) : false
   updatePlayback({ mode, isPlaying })
 }
@@ -160,6 +184,13 @@ watch(
     })
   },
   { immediate: true }
+)
+
+watch(
+  () => state.value?.playback.mode,
+  () => {
+    void restoreWindowScroll()
+  }
 )
 
 watch(
