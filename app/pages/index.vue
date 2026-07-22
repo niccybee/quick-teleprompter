@@ -1,5 +1,4 @@
 <script setup lang="ts">
-import QRCode from 'qrcode'
 import { telePageClass } from '~/utils/tailwindSurfaces'
 
 useHead({
@@ -13,9 +12,7 @@ useHead({
 })
 
 const joinCode = ref('')
-const createdRoomCode = ref('')
 const creating = ref(false)
-const qrDataUrl = ref('')
 const createSectionReady = ref(false)
 const startWorkbenchOpen = ref(false)
 
@@ -38,12 +35,9 @@ const createRoom = async () => {
       method: 'POST'
     })
 
-    createdRoomCode.value = roomCode
-
-    const displayUrl = `${window.location.origin}/display/${roomCode}`
-    qrDataUrl.value = await QRCode.toDataURL(displayUrl, {
-      margin: 1,
-      width: 240
+    await navigateTo({
+      path: `/controller/${roomCode}`,
+      query: { pairing: 'display' }
     })
   }
   finally {
@@ -82,33 +76,12 @@ const sessionSpecs = [
   ['Display', 'Comfort controls built in', 'Themes, mirroring, and readability stay available']
 ]
 
-const quickLinks = computed(() => {
-  if (!createdRoomCode.value) {
-    return []
-  }
-
-  return [
-    {
-      label: 'Controller',
-      to: `/controller/${createdRoomCode.value}`,
-      icon: 'i-lucide-sliders-horizontal'
-    },
-    {
-      label: 'Display',
-      to: `/display/${createdRoomCode.value}`,
-      icon: 'i-lucide-monitor-play'
-    }
-  ]
-})
-
 const labelClass = 'm-0 text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-muted'
 const sectionTitleClass = 'm-0 text-[clamp(1.25rem,2vw,1.8rem)] font-[780] leading-[1.05] tracking-normal text-highlighted'
 const panelTextClass = 'm-0 leading-[1.6] text-toned'
 const consoleSurfaceClass = 'grid gap-6 rounded-3xl border border-default bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_82%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_54%,transparent))] p-6 text-highlighted shadow-[0_24px_70px_color-mix(in_oklch,var(--ui-text-highlighted)_14%,transparent)] backdrop-blur-[18px] backdrop-saturate-[1.1] sm:p-10'
 const panelSurfaceClass = 'grid min-h-60 content-start gap-4 rounded-2xl border border-default/60 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_76%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_46%,transparent))] p-6 backdrop-blur-[14px] backdrop-saturate-[1.08]'
 const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/60 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_74%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_42%,transparent))] p-6 backdrop-blur-[14px] backdrop-saturate-[1.08] first:border-default first:bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_82%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_54%,transparent))] max-lg:min-h-0'
-const resultSurfaceClass = 'grid items-center gap-6 rounded-2xl border border-default/60 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_74%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_42%,transparent))] p-6 backdrop-blur-[14px] backdrop-saturate-[1.08] sm:grid-cols-[minmax(0,1fr)_auto]'
-const glassPillClass = 'border border-[color-mix(in_oklab,var(--ui-border)_72%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--ui-bg)_82%,transparent),color-mix(in_oklab,var(--ui-bg-muted)_54%,transparent))] shadow-[0_24px_80px_color-mix(in_oklab,var(--ui-text-highlighted)_12%,transparent)] backdrop-blur-[20px] backdrop-saturate-[1.12]'
 </script>
 
 <template>
@@ -210,34 +183,6 @@ const glassPillClass = 'border border-[color-mix(in_oklab,var(--ui-border)_72%,t
             </div>
           </div>
 
-          <Transition
-            enter-active-class="overflow-hidden transition-all duration-300 ease-out"
-            enter-from-class="max-h-0 translate-y-2 opacity-0"
-            enter-to-class="max-h-[24rem] translate-y-0 opacity-100"
-            leave-active-class="overflow-hidden transition-all duration-200 ease-in"
-            leave-from-class="max-h-[24rem] opacity-100"
-            leave-to-class="max-h-0 opacity-0"
-          >
-            <div v-if="createdRoomCode" :class="resultSurfaceClass">
-              <div>
-                <p :class="labelClass">Room code</p>
-                <p class="my-2 font-mono text-[clamp(2rem,5vw,3.4rem)] font-[850] tracking-[0.16em] text-highlighted">{{ createdRoomCode }}</p>
-                <div class="flex flex-wrap gap-3">
-                  <UButton v-for="link in quickLinks" :key="link.label" :to="link.to" size="sm" color="neutral" variant="soft">
-                    <UIcon :name="link.icon" class="size-4" />
-                    {{ link.label }}
-                  </UButton>
-                </div>
-              </div>
-
-              <img
-                v-if="qrDataUrl"
-                :src="qrDataUrl"
-                alt="Display QR code"
-                class="h-[8.75rem] w-[8.75rem] rounded-xl bg-neutral-50 p-2"
-              />
-            </div>
-          </Transition>
         </section>
       </section>
 
@@ -330,34 +275,6 @@ const glassPillClass = 'border border-[color-mix(in_oklab,var(--ui-border)_72%,t
               </div>
             </div>
 
-            <Transition
-              enter-active-class="overflow-hidden transition-all duration-300 ease-out"
-              enter-from-class="max-h-0 translate-y-2 opacity-0"
-              enter-to-class="max-h-[24rem] translate-y-0 opacity-100"
-              leave-active-class="overflow-hidden transition-all duration-200 ease-in"
-              leave-from-class="max-h-[24rem] opacity-100"
-              leave-to-class="max-h-0 opacity-0"
-            >
-              <div v-if="createdRoomCode" :class="resultSurfaceClass">
-                <div>
-                  <p :class="labelClass">Room code</p>
-                  <p class="my-2 font-mono text-[clamp(2rem,5vw,3.4rem)] font-[850] tracking-[0.16em] text-highlighted">{{ createdRoomCode }}</p>
-                  <div class="flex flex-wrap gap-3">
-                    <UButton v-for="link in quickLinks" :key="link.label" :to="link.to" size="sm" color="neutral" variant="soft">
-                      <UIcon :name="link.icon" class="size-4" />
-                      {{ link.label }}
-                    </UButton>
-                  </div>
-                </div>
-
-                <img
-                  v-if="qrDataUrl"
-                  :src="qrDataUrl"
-                  alt="Display QR code"
-                  class="h-[8.75rem] w-[8.75rem] rounded-xl bg-neutral-50 p-2"
-                />
-              </div>
-            </Transition>
           </section>
         </template>
       </UModal>
@@ -406,27 +323,6 @@ const glassPillClass = 'border border-[color-mix(in_oklab,var(--ui-border)_72%,t
         <p class="m-0">ompt.io · instant teleprompter rooms · obair.tech 2026</p>
         <p class="m-0">Start free · control live · display anywhere</p>
       </footer>
-    </div>
-
-
-
-    <div v-if="quickLinks.length" class="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
-      <div
-        :class="['pointer-events-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-full px-4 py-3 shadow-2xl', glassPillClass]">
-        <div class="min-w-0">
-          <p class="text-xs uppercase tracking-[0.24em] text-muted">Quick Launch</p>
-          <p class="truncate font-mono text-sm font-semibold tracking-[0.16em] text-highlighted">
-            {{ createdRoomCode }}
-          </p>
-        </div>
-
-        <div class="flex flex-wrap justify-end gap-2">
-          <UButton v-for="link in quickLinks" :key="link.label" :to="link.to" color="neutral" variant="soft" size="sm">
-            <UIcon :name="link.icon" class="size-4" />
-            {{ link.label }}
-          </UButton>
-        </div>
-      </div>
     </div>
   </main>
 </template>

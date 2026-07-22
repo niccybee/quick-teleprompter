@@ -27,7 +27,7 @@ const scriptPanelOpen = ref(true)
 const settingsOpen = ref(false)
 const modeMenuOpen = ref(false)
 const previewOpen = ref(false)
-const roomInfoOpen = ref(false)
+const roomInfoOpen = ref(route.query.pairing === 'display')
 const dockPosition = ref<'top' | 'bottom'>('bottom')
 const settingsSection = ref<'playback' | 'typography' | 'display'>('playback')
 const roomQrDataUrl = ref('')
@@ -797,9 +797,20 @@ watch(settingsOpen, async (isOpen) => {
             <p class="font-mono text-3xl font-semibold tracking-[0.18em] text-highlighted">{{ roomCode }}</p>
           </div>
 
-          <UButton color="neutral" variant="soft" @click="roomInfoOpen = false">
-            Close
-          </UButton>
+          <div class="grid w-full gap-2">
+            <UButton
+              :to="`/display/${roomCode}`"
+              target="_blank"
+              rel="noopener noreferrer"
+              icon="i-lucide-external-link"
+              class="justify-center"
+            >
+              Open display in a new tab
+            </UButton>
+            <UButton color="neutral" variant="soft" class="justify-center" @click="roomInfoOpen = false">
+              Close
+            </UButton>
+          </div>
         </div>
       </template>
     </UModal>
