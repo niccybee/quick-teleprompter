@@ -11,9 +11,9 @@ export default defineNuxtConfig({
   pwa: {
     registerType: 'autoUpdate',
     manifest: {
-      name: 'Teleprompter',
-      short_name: 'Teleprompter',
-      description: 'Realtime teleprompter with controller and display',
+      name: 'ompt',
+      short_name: 'ompt',
+      description: 'Realtime prompting rooms for controller and display pairs',
       theme_color: '#0f172a',
       background_color: '#0f172a',
       display: 'standalone',

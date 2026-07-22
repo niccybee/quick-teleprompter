@@ -4,3 +4,5 @@ node_modules
 .data
 .env
 .DS_Store
+http-server.log
+mcp-server.log

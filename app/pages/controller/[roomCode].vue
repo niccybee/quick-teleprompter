@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import QRCode from 'qrcode'
 import type { PlaybackMode, ThemeMode } from '#shared/types/teleprompter'
+import { telePageClass } from '~/utils/tailwindSurfaces'
 import { renderMarkdown } from '~/utils/markdown'
 
 const route = useRoute()
@@ -143,16 +144,29 @@ const modeIsScroll = computed(() => state.value?.playback.mode === 'scroll')
 const modeIsStep = computed(() => state.value?.playback.mode === 'step')
 const modeIsAuto = computed(() => state.value?.playback.mode === 'auto')
 const previewHtml = computed(() => renderMarkdown(state.value?.scriptMarkdown ?? ''))
-const activeMode = computed(() => playbackModes.find(mode => mode.value === state.value?.playback.mode) ?? playbackModes[0])
-const activeTheme = computed(() => themeOptions.find(theme => theme.value === state.value?.display.theme) ?? themeOptions[0])
+const activeMode = computed(() => playbackModes.find(mode => mode.value === state.value?.playback.mode) ?? playbackModes[0]!)
+const activeTheme = computed(() => themeOptions.find(theme => theme.value === state.value?.display.theme) ?? themeOptions[0]!)
 const canPlay = computed(() => Boolean(state.value && modeIsAuto.value))
 const primaryActionLabel = computed(() => state.value?.playback.isPlaying ? 'Pause' : 'Play')
 const primaryActionIcon = computed(() => state.value?.playback.isPlaying ? 'i-lucide-pause' : 'i-lucide-play')
 const dockPositionLabel = computed(() => dockPosition.value === 'top' ? 'Top' : 'Bottom')
+const glassSurfaceClass = 'border border-[color-mix(in_oklab,var(--ui-border)_72%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--ui-bg)_82%,transparent),color-mix(in_oklab,var(--ui-bg-muted)_54%,transparent))] shadow-[0_24px_80px_color-mix(in_oklab,var(--ui-text-highlighted)_12%,transparent)] backdrop-blur-[20px] backdrop-saturate-[1.12]'
+const controllerCardRootClass = `rounded-xl sm:rounded-[2rem] ${glassSurfaceClass}`
+const dockSurfaceClass = `pointer-events-auto flex w-full max-w-4xl flex-wrap items-center justify-center gap-2 rounded-full px-3 py-3 shadow-2xl ${glassSurfaceClass}`
 
 const openSettings = (section: 'playback' | 'typography' | 'display') => {
   settingsSection.value = section
   settingsOpen.value = true
+}
+
+const openRoomInfo = () => {
+  roomInfoOpen.value = true
+}
+
+const openRoomInfoFromSettings = async () => {
+  settingsOpen.value = false
+  await nextTick()
+  roomInfoOpen.value = true
 }
 
 const scrollSettingsSectionIntoView = () => {
@@ -279,12 +293,12 @@ watch(settingsOpen, async (isOpen) => {
 </script>
 
 <template>
-  <main class="tele-page min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+  <main :class="[telePageClass, 'min-h-screen px-4 py-6 sm:px-6 lg:px-8']">
     <FloatingThemeMenu class="top-5" />
 
     <div class="mx-auto flex max-w-[96rem] flex-col gap-6 pb-32 pt-16 lg:pt-20">
       <section class="grid gap-4 xl:grid-cols-[minmax(0,1.3fr)_minmax(26rem,0.9fr)]">
-        <UCard :ui="{ root: 'rounded-xl sm:rounded-[2rem] tele-glass', body: 'p-5 sm:p-6', header: 'p-5 sm:p-6 pb-0' }">
+        <UCard :ui="{ root: controllerCardRootClass, body: 'p-5 sm:p-6', header: 'p-5 sm:p-6 pb-0' }">
           <template #header>
             <div class="flex flex-wrap items-start justify-between gap-4">
               <div class="space-y-3">
@@ -304,7 +318,7 @@ watch(settingsOpen, async (isOpen) => {
                   <UBadge :color="connected ? 'success' : 'error'" variant="soft">
                     {{ connected ? 'Connected' : 'Disconnected' }}
                   </UBadge>
-                  <UButton color="neutral" variant="soft" size="sm" @click="roomInfoOpen = true">
+                  <UButton color="neutral" variant="soft" size="sm" @click="openRoomInfo">
                     Displays: {{ state?.presence.displays ?? 0 }}
                   </UButton>
                 </div>
@@ -370,7 +384,7 @@ watch(settingsOpen, async (isOpen) => {
         </UCard>
 
         <UCard
-          :ui="{ root: 'rounded-xl sm:rounded-[2rem] tele-glass', body: 'p-5 sm:p-6', header: 'p-5 sm:p-6 pb-0' }"
+          :ui="{ root: controllerCardRootClass, body: 'p-5 sm:p-6', header: 'p-5 sm:p-6 pb-0' }"
           class="xl:sticky xl:top-24"
         >
           <template #header>
@@ -428,7 +442,7 @@ watch(settingsOpen, async (isOpen) => {
         >
           <UCard
             v-if="scriptPanelOpen"
-            :ui="{ root: 'rounded-xl sm:rounded-[2rem] tele-glass', body: 'p-5 sm:p-6', header: 'p-5 sm:p-6 pb-0' }"
+            :ui="{ root: controllerCardRootClass, body: 'p-5 sm:p-6', header: 'p-5 sm:p-6 pb-0' }"
             class="xl:sticky xl:top-24"
           >
             <template #header>
@@ -482,7 +496,7 @@ watch(settingsOpen, async (isOpen) => {
           </UCard>
         </Transition>
 
-        <div v-if="!scriptPanelOpen" class="tele-glass rounded-xl border border-dashed border-default/80 p-8 text-center sm:rounded-[2rem]">
+        <div v-if="!scriptPanelOpen" :class="['rounded-xl border border-dashed border-default/80 p-8 text-center sm:rounded-[2rem]', glassSurfaceClass]">
           <p class="text-lg font-semibold text-highlighted">Script panel hidden</p>
           <p class="mt-2 text-sm text-muted">Open Settings from the floating dock whenever you want to bring the script workspace back.</p>
         </div>
@@ -493,7 +507,7 @@ watch(settingsOpen, async (isOpen) => {
       class="pointer-events-none fixed inset-x-0 z-40 flex justify-center px-4"
       :class="dockPosition === 'top' ? 'top-20' : 'bottom-4'"
     >
-      <div class="pointer-events-auto tele-glass flex w-full max-w-4xl flex-wrap items-center justify-center gap-2 rounded-full px-3 py-3 shadow-2xl">
+      <div :class="dockSurfaceClass">
         <UPopover
           v-model:open="modeMenuOpen"
           :content="{ side: dockPosition === 'top' ? 'bottom' : 'top', sideOffset: 12 }"
@@ -593,7 +607,7 @@ watch(settingsOpen, async (isOpen) => {
                 </UButton>
               </div>
 
-              <div class="flex-1 space-y-6 overflow-y-auto px-5 py-5">
+              <div v-if="state" class="flex-1 space-y-6 overflow-y-auto px-5 py-5">
                 <div class="space-y-3">
                   <p class="text-sm font-medium text-highlighted">Workspace</p>
                   <UButton
@@ -698,6 +712,16 @@ watch(settingsOpen, async (isOpen) => {
                     variant="soft"
                     class="justify-between"
                     block
+                    @click="openRoomInfoFromSettings"
+                  >
+                    <span>Add Display</span>
+                    <UIcon name="i-lucide-qr-code" class="size-4" />
+                  </UButton>
+                  <UButton
+                    color="neutral"
+                    variant="soft"
+                    class="justify-between"
+                    block
                     @click="updateDisplay({ mirror: !state.display.mirror })"
                   >
                     <span>Mirror text</span>
@@ -720,7 +744,7 @@ watch(settingsOpen, async (isOpen) => {
       :class="dockPosition === 'top' ? 'bottom-4' : 'bottom-24'"
     />
 
-    <UModal v-model:open="previewOpen" :content="{ class: 'max-w-6xl' }">
+    <UModal v-model:open="previewOpen" :ui="{ content: 'max-w-6xl' }">
       <template #content>
         <div class="flex max-h-[88vh] flex-col overflow-hidden bg-default">
           <div class="flex items-start justify-between gap-3 border-b border-default px-5 py-4">
@@ -736,8 +760,7 @@ watch(settingsOpen, async (isOpen) => {
           <div
             v-if="state && modeIsScroll"
             ref="scrollPreviewRef"
-            class="overflow-y-auto bg-black/90 p-3 text-white"
-            style="touch-action: pan-y; -webkit-overflow-scrolling: touch; height: min(72vh, 980px);"
+            class="h-[min(72vh,980px)] overflow-y-auto bg-black/90 p-3 text-white [touch-action:pan-y] [-webkit-overflow-scrolling:touch]"
           >
             <div
               class="mx-auto max-w-5xl px-4 pb-16 pt-[30vh]"
@@ -754,7 +777,7 @@ watch(settingsOpen, async (isOpen) => {
       </template>
     </UModal>
 
-    <UModal v-model:open="roomInfoOpen" :content="{ class: 'max-w-md' }">
+    <UModal v-model:open="roomInfoOpen" :ui="{ content: 'max-w-md' }">
       <template #content>
         <div class="flex flex-col items-center gap-5 bg-default px-6 py-6 text-center">
           <div class="space-y-1">

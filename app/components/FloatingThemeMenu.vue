@@ -17,7 +17,7 @@ const themes: Array<{ label: string, value: ThemeMode, icon: string }> = [
 ]
 
 const currentTheme = computed(() => {
-  return themes.find(theme => theme.value === colorMode.preference) ?? themes[3]
+  return themes.find(theme => theme.value === colorMode.preference) ?? themes[3]!
 })
 
 const setTheme = (theme: ThemeMode) => {
@@ -32,6 +32,7 @@ const setTheme = (theme: ThemeMode) => {
         color="neutral"
         variant="soft"
         size="lg"
+        :aria-label="`Appearance: ${currentTheme.label}`"
         class="rounded-full border border-default/70 bg-default/80 shadow-lg shadow-black/10 backdrop-blur"
       >
         <UIcon :name="currentTheme.icon" class="size-4" />

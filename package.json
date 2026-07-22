@@ -1,5 +1,5 @@
 {
-  "name": "teleprompter-app",
+  "name": "ompt",
   "private": true,
   "type": "module",
   "packageManager": "npm@10.9.2",
@@ -10,23 +10,27 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "@nuxt/ui": "^4.0.0",
+    "@nuxt/ui": "^4.10.0",
     "@vite-pwa/nuxt": "^1.0.0",
-    "@vueuse/core": "^14.2.1",
-    "@vueuse/nuxt": "^14.2.1",
-    "better-sqlite3": "^11.8.1",
+    "@vueuse/core": "^14.3.0",
+    "@vueuse/nuxt": "^14.3.0",
+    "better-sqlite3": "^12.11.1",
+    "lottie-web": "^5.13.0",
     "marked": "^15.0.7",
-    "nuxt": "^4.0.3",
+    "nuxt": "^4.4.8",
     "qrcode": "^1.5.4",
-    "sanitize-html": "^2.17.0",
+    "sanitize-html": "^2.17.6",
     "socket.io": "^4.8.1",
-    "socket.io-client": "^4.8.1"
+    "socket.io-client": "^4.8.1",
+    "vue-router": "5.1.0"
   },
   "devDependencies": {
+    "@iconify-json/lucide": "^1.2.118",
     "@types/better-sqlite3": "^7.6.12",
     "@types/qrcode": "^1.5.5",
     "@types/sanitize-html": "^2.16.0",
     "typescript": "^5.8.2",
-    "vitest": "^2.1.8"
+    "vitest": "^2.1.8",
+    "vue-tsc": "^3.3.7"
   }
 }

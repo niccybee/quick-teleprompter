@@ -1,4 +1,4 @@
-import type { WebSocketPeer } from 'crossws'
+import type { Peer } from 'crossws'
 
 type Role = 'controller' | 'display'
 
@@ -7,17 +7,17 @@ interface PeerMeta {
   role: Role
 }
 
-const roomPeers = new Map<string, Set<WebSocketPeer>>()
-const peerMeta = new WeakMap<WebSocketPeer, PeerMeta>()
+const roomPeers = new Map<string, Set<Peer>>()
+const peerMeta = new WeakMap<Peer, PeerMeta>()
 
-export function registerPeer(roomCode: string, role: Role, peer: WebSocketPeer): void {
-  const peers = roomPeers.get(roomCode) ?? new Set<WebSocketPeer>()
+export function registerPeer(roomCode: string, role: Role, peer: Peer): void {
+  const peers = roomPeers.get(roomCode) ?? new Set<Peer>()
   peers.add(peer)
   roomPeers.set(roomCode, peers)
   peerMeta.set(peer, { roomCode, role })
 }
 
-export function unregisterPeer(peer: WebSocketPeer): PeerMeta | null {
+export function unregisterPeer(peer: Peer): PeerMeta | null {
   const meta = peerMeta.get(peer)
   if (!meta) {
     return null
@@ -35,7 +35,7 @@ export function unregisterPeer(peer: WebSocketPeer): PeerMeta | null {
   return meta
 }
 
-export function getPeerMeta(peer: WebSocketPeer): PeerMeta | null {
+export function getPeerMeta(peer: Peer): PeerMeta | null {
   return peerMeta.get(peer) ?? null
 }
 
@@ -61,7 +61,7 @@ export function getPresence(roomCode: string): { controllers: number; displays: 
   return { controllers, displays }
 }
 
-export function sendToPeer(peer: WebSocketPeer, type: string, payload: unknown): void {
+export function sendToPeer(peer: Peer, type: string, payload: unknown): void {
   peer.send(JSON.stringify({ type, payload }))
 }
 

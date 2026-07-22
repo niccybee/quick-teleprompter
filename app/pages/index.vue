@@ -1,10 +1,35 @@
 <script setup lang="ts">
 import QRCode from 'qrcode'
+import { telePageClass } from '~/utils/tailwindSurfaces'
+
+useHead({
+  title: 'ompt | Start a free teleprompter instantly',
+  meta: [
+    {
+      name: 'description',
+      content: 'Start a free teleprompter in seconds with synced controller and display screens for creators, crews, and budget-friendly shoots.'
+    }
+  ]
+})
 
 const joinCode = ref('')
 const createdRoomCode = ref('')
 const creating = ref(false)
 const qrDataUrl = ref('')
+const createSectionReady = ref(false)
+const startWorkbenchOpen = ref(false)
+
+const homeMenuLinks = [
+  { label: 'Start free', to: '#launch' },
+  { label: 'Flow', to: '#flow' },
+  { label: 'Pricing', to: '/pricing' }
+]
+
+onMounted(() => {
+  requestAnimationFrame(() => {
+    createSectionReady.value = true
+  })
+})
 
 const createRoom = async () => {
   creating.value = true
@@ -29,6 +54,34 @@ const createRoom = async () => {
 const normalizedJoinCode = computed(() => joinCode.value.toUpperCase().trim())
 const canJoin = computed(() => normalizedJoinCode.value.length === 6)
 
+const workbenchSteps = [
+  {
+    label: 'Create',
+    title: 'Start a room in seconds',
+    body: 'Spin up a free teleprompter, hand the display screen a QR code, and keep the controller on your device.',
+    icon: 'i-lucide-radio-tower'
+  },
+  {
+    label: 'Load',
+    title: 'Bring in the script',
+    body: 'Paste markdown or import a Google Doc once you are inside the controller view.',
+    icon: 'i-lucide-file-text'
+  },
+  {
+    label: 'Run',
+    title: 'Keep the take moving',
+    body: 'Step manually, autoplay, free-scroll, mirror, and tune display settings while the screen stays synced.',
+    icon: 'i-lucide-sliders-horizontal'
+  }
+]
+
+const sessionSpecs = [
+  ['Room', 'Free launch in seconds', 'Share by QR or direct link'],
+  ['Views', 'Controller + Display', 'Separate devices stay in lockstep'],
+  ['Input', 'Markdown + Google Docs', 'Load the script from the controller'],
+  ['Display', 'Comfort controls built in', 'Themes, mirroring, and readability stay available']
+]
+
 const quickLinks = computed(() => {
   if (!createdRoomCode.value) {
     return []
@@ -47,160 +100,319 @@ const quickLinks = computed(() => {
     }
   ]
 })
+
+const labelClass = 'm-0 text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-muted'
+const sectionTitleClass = 'm-0 text-[clamp(1.25rem,2vw,1.8rem)] font-[780] leading-[1.05] tracking-normal text-highlighted'
+const panelTextClass = 'm-0 leading-[1.6] text-toned'
+const consoleSurfaceClass = 'grid gap-6 rounded-3xl border border-default bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_82%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_54%,transparent))] p-6 text-highlighted shadow-[0_24px_70px_color-mix(in_oklch,var(--ui-text-highlighted)_14%,transparent)] backdrop-blur-[18px] backdrop-saturate-[1.1] sm:p-10'
+const panelSurfaceClass = 'grid min-h-60 content-start gap-4 rounded-2xl border border-default/60 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_76%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_46%,transparent))] p-6 backdrop-blur-[14px] backdrop-saturate-[1.08]'
+const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/60 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_74%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_42%,transparent))] p-6 backdrop-blur-[14px] backdrop-saturate-[1.08] first:border-default first:bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_82%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_54%,transparent))] max-lg:min-h-0'
+const resultSurfaceClass = 'grid items-center gap-6 rounded-2xl border border-default/60 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_74%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_42%,transparent))] p-6 backdrop-blur-[14px] backdrop-saturate-[1.08] sm:grid-cols-[minmax(0,1fr)_auto]'
+const glassPillClass = 'border border-[color-mix(in_oklab,var(--ui-border)_72%,transparent)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--ui-bg)_82%,transparent),color-mix(in_oklab,var(--ui-bg-muted)_54%,transparent))] shadow-[0_24px_80px_color-mix(in_oklab,var(--ui-text-highlighted)_12%,transparent)] backdrop-blur-[20px] backdrop-saturate-[1.12]'
 </script>
 
 <template>
-  <main class="tele-page min-h-screen px-4 py-6 sm:px-6 lg:px-8">
+  <main :class="[telePageClass, 'min-h-screen overflow-x-clip px-4 py-6 font-sans text-highlighted sm:px-6 lg:px-8']">
     <FloatingThemeMenu />
 
-    <div class="mx-auto flex w-full max-w-7xl flex-col gap-8 pb-28 pt-16 lg:pt-20">
-      <section class="grid gap-6 lg:grid-cols-[minmax(0,1.2fr)_minmax(22rem,30rem)] lg:items-end">
-        <div class="space-y-6">
-          <div
-            class="inline-flex items-center gap-2 rounded-full border border-default/80 bg-default/75 px-3 py-1 text-sm text-toned shadow-sm backdrop-blur">
-            <UIcon name="i-lucide-radio-tower" class="size-4" />
-            Realtime rooms for controller + display pairs
-          </div>
+    <FloatingPillMenu
+      aria-label="Homepage"
+      :links="homeMenuLinks"
+      action-label="Start free"
+      :action-loading="creating"
+      :action-disabled="!createSectionReady"
+      @action="createRoom"
+    />
 
-          <div class="space-y-4">
-            <h1 class="max-w-4xl text-5xl font-semibold tracking-tight text-highlighted sm:text-6xl lg:text-7xl">
-              Keep the script moving without losing the room.
-            </h1>
-            <p class="max-w-2xl text-lg text-toned sm:text-xl">
-              Spin up a teleprompter session, hand the display to one screen, and steer everything from a cleaner
-              control surface.
-            </p>
-          </div>
-
-          <div class="grid gap-3 sm:grid-cols-3">
-            <div class="tele-glass rounded-3xl p-4">
-              <p class="text-sm font-medium text-highlighted">Fast setup</p>
-              <p class="mt-1 text-sm text-muted">Create a room instantly and launch both views from the same place.</p>
-            </div>
-            <div class="tele-glass rounded-3xl p-4">
-              <p class="text-sm font-medium text-highlighted">Live sync</p>
-              <p class="mt-1 text-sm text-muted">Playback, display settings, and script updates stay aligned in real
-                time.</p>
-            </div>
-            <div class="tele-glass rounded-3xl p-4">
-              <p class="text-sm font-medium text-highlighted">Stage ready</p>
-              <p class="mt-1 text-sm text-muted">Swap themes, mirror text, and tune reading comfort without breaking
-                flow.</p>
-            </div>
-          </div>
+    <div class="mx-auto mt-16 w-[min(100%,74rem)] sm:mt-24">
+      <section id="launch" class="grid items-center gap-10 lg:grid-cols-[minmax(0,0.86fr)_minmax(22rem,1fr)] lg:gap-16">
+        <div class="grid gap-6">
+          <p :class="labelClass">ompt.io · instant teleprompter · free to start</p>
+          <h1 class="m-0 max-w-[11ch] text-[clamp(3rem,16vw,4.6rem)] font-[850] leading-[0.86] tracking-normal text-highlighted lg:text-[clamp(3.1rem,7vw,7.4rem)]">
+            Start free before the camera rolls.
+          </h1>
+          <p class="m-0 max-w-[35rem] text-[clamp(1.05rem,1.6vw,1.25rem)] leading-[1.7] text-toned">
+            ompt spins up an instant teleprompter for your script. Put the display on a second screen, keep the
+            controller in your hand, and start reading in seconds whether you are filming solo or running a lean crew.
+          </p>
+          <UButton size="lg" color="primary" variant="solid" class="w-full justify-center sm:w-fit" @click="startWorkbenchOpen = true">
+            <UIcon name="i-lucide-play" class="size-4" />
+            Start free now
+          </UButton>
         </div>
 
-        <div class="tele-glass rounded-[2rem] p-5 sm:p-6">
-          <div class="space-y-4">
-            <div class="flex items-center justify-between gap-3">
+        <section :class="[consoleSurfaceClass, 'hidden lg:grid']" aria-label="Session launch workbench">
+          <div class="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_auto]">
+            <div>
+              <p :class="labelClass">Session workbench</p>
+              <h2 :class="sectionTitleClass">Create or join</h2>
+            </div>
+            <div class="flex flex-wrap items-center gap-[0.35rem] font-mono text-[0.72rem] text-muted lg:justify-end">
+              <span>Home</span>
+              <UIcon name="i-lucide-chevron-right" class="size-4" />
+              <span>Controller</span>
+              <UIcon name="i-lucide-chevron-right" class="size-4" />
+              <span>Display</span>
+            </div>
+          </div>
+
+          <div class="grid gap-4 lg:grid-cols-2">
+            <div :class="panelSurfaceClass">
+              <div class="inline-flex items-center gap-3 font-[780] text-highlighted">
+                <UIcon name="i-lucide-plus" class="size-4" />
+                <span>Create</span>
+              </div>
+              <p :class="panelTextClass">Generate a free room and a QR code for the display device.</p>
+              <UButton
+                size="xl"
+                :loading="creating || !createSectionReady"
+                :disabled="!createSectionReady"
+                class="mt-auto w-full justify-center"
+                @click="createRoom"
+              >
+                Start Free Room
+              </UButton>
+            </div>
+
+            <div :class="panelSurfaceClass">
+              <div class="inline-flex items-center gap-3 font-[780] text-highlighted">
+                <UIcon name="i-lucide-key-round" class="size-4" />
+                <span>Join</span>
+              </div>
+              <p :class="panelTextClass">Already have a room code? Open the controller or display you need.</p>
+              <UInput
+                v-model="joinCode"
+                placeholder="ABC123"
+                size="xl"
+                class="w-full"
+                :ui="{ base: 'font-mono tracking-[0.24em] uppercase text-center' }"
+              />
+              <div class="flex flex-wrap gap-3">
+                <UButton
+                  :to="canJoin ? `/controller/${normalizedJoinCode}` : undefined"
+                  :disabled="!canJoin"
+                  size="lg"
+                >
+                  <UIcon name="i-lucide-sliders-horizontal" class="size-4" />
+                  Controller
+                </UButton>
+                <UButton
+                  :to="canJoin ? `/display/${normalizedJoinCode}` : undefined"
+                  :disabled="!canJoin"
+                  size="lg"
+                  color="neutral"
+                  variant="soft"
+                >
+                  <UIcon name="i-lucide-monitor-play" class="size-4" />
+                  Display
+                </UButton>
+              </div>
+            </div>
+          </div>
+
+          <Transition
+            enter-active-class="overflow-hidden transition-all duration-300 ease-out"
+            enter-from-class="max-h-0 translate-y-2 opacity-0"
+            enter-to-class="max-h-[24rem] translate-y-0 opacity-100"
+            leave-active-class="overflow-hidden transition-all duration-200 ease-in"
+            leave-from-class="max-h-[24rem] opacity-100"
+            leave-to-class="max-h-0 opacity-0"
+          >
+            <div v-if="createdRoomCode" :class="resultSurfaceClass">
               <div>
-                <p class="text-sm font-medium uppercase tracking-[0.24em] text-muted">Session Builder</p>
-                <p class="mt-1 text-sm text-toned">Create a fresh room or jump into an existing one.</p>
-              </div>
-              <div class="rounded-2xl border border-default/80 bg-default/70 px-3 py-2 text-right shadow-sm">
-                <p class="text-xs uppercase tracking-[0.2em] text-muted">Flow</p>
-                <p class="text-sm font-medium text-highlighted">Home -> Controller -> Display</p>
-              </div>
-            </div>
-
-            <div class="grid gap-4">
-              <UCard :ui="{ root: 'rounded-[1.5rem] tele-glass', body: 'p-5', header: 'p-5 pb-0' }">
-                <template #header>
-                  <div class="space-y-1">
-                    <h2 class="text-xl font-semibold text-highlighted">Create Session</h2>
-                    <p class="text-sm text-muted">Start a new room and generate a QR for the display device.</p>
-                  </div>
-                </template>
-
-                <div class="space-y-4">
-                  <UButton size="xl" :loading="creating" class="justify-center" @click="createRoom">
-                    <UIcon name="i-lucide-plus" class="size-4" />
-                    Create Room
+                <p :class="labelClass">Room code</p>
+                <p class="my-2 font-mono text-[clamp(2rem,5vw,3.4rem)] font-[850] tracking-[0.16em] text-highlighted">{{ createdRoomCode }}</p>
+                <div class="flex flex-wrap gap-3">
+                  <UButton v-for="link in quickLinks" :key="link.label" :to="link.to" size="sm" color="neutral" variant="soft">
+                    <UIcon :name="link.icon" class="size-4" />
+                    {{ link.label }}
                   </UButton>
-
-                  <div v-if="createdRoomCode"
-                    class="grid gap-4 rounded-[1.5rem] border border-default/80 bg-default/60 p-4 shadow-sm sm:grid-cols-[1fr_auto]">
-                    <div class="space-y-3">
-                      <div>
-                        <p class="text-xs uppercase tracking-[0.24em] text-muted">Room Code</p>
-                        <p class="mt-1 font-mono text-3xl font-semibold tracking-[0.18em] text-highlighted">
-                          {{ createdRoomCode }}
-                        </p>
-                      </div>
-
-                      <div class="flex flex-wrap gap-2">
-                        <UButton v-for="link in quickLinks" :key="link.label" :to="link.to" size="sm" color="neutral"
-                          variant="soft">
-                          <UIcon :name="link.icon" class="size-4" />
-                          {{ link.label }}
-                        </UButton>
-                      </div>
-                    </div>
-
-                    <img v-if="qrDataUrl" :src="qrDataUrl" alt="Display QR code"
-                      class="mx-auto w-36 rounded-2xl border border-default bg-white p-2" />
-                  </div>
                 </div>
-              </UCard>
+              </div>
 
-              <UCard :ui="{ root: 'rounded-[1.5rem] tele-glass', body: 'p-5', header: 'p-5 pb-0' }">
-                <template #header>
-                  <div class="space-y-1">
-                    <h2 class="text-xl font-semibold text-highlighted">Join Existing Room</h2>
-                    <p class="text-sm text-muted">Paste the code from another device and choose your role.</p>
-                  </div>
-                </template>
-
-                <div class="grid gap-4">
-                  <UInput v-model="joinCode" placeholder="Enter 6-character room code" size="xl" class="w-full"
-                    :ui="{ base: 'font-mono tracking-[0.2em] uppercase' }" />
-
-                  <div class="grid gap-2 sm:grid-cols-2">
-                    <UButton :to="canJoin ? `/controller/${normalizedJoinCode}` : undefined" :disabled="!canJoin"
-                      size="lg" class="justify-center">
-                      <UIcon name="i-lucide-sliders-horizontal" class="size-4" />
-                      Open Controller
-                    </UButton>
-                    <UButton :to="canJoin ? `/display/${normalizedJoinCode}` : undefined" :disabled="!canJoin" size="lg"
-                      color="neutral" variant="soft" class="justify-center">
-                      <UIcon name="i-lucide-monitor-play" class="size-4" />
-                      Open Display
-                    </UButton>
-                  </div>
-                </div>
-              </UCard>
+              <img
+                v-if="qrDataUrl"
+                :src="qrDataUrl"
+                alt="Display QR code"
+                class="h-[8.75rem] w-[8.75rem] rounded-xl bg-neutral-50 p-2"
+              />
             </div>
+          </Transition>
+        </section>
+      </section>
+
+      <UModal
+        v-model:open="startWorkbenchOpen"
+        title="Start free"
+        description="Create or join an instant ompt teleprompter."
+        :ui="{
+          overlay: 'bg-default/70 backdrop-blur-md',
+          content: '!w-[calc(100vw-2rem)] !max-w-3xl !bg-transparent !shadow-none !ring-0 !divide-y-0 !overflow-visible data-[state=open]:animate-[slide-in-from-right_260ms_ease-out] data-[state=closed]:animate-[slide-out-to-right_180ms_ease-in]'
+        }"
+      >
+        <template #content="{ close }">
+          <section :class="[consoleSurfaceClass, 'relative max-h-[calc(100dvh-2rem)] overflow-y-auto']" aria-label="Start free session workbench">
+            <UButton
+              color="neutral"
+              variant="ghost"
+              size="sm"
+              icon="i-lucide-x"
+              aria-label="Close start free modal"
+              class="absolute right-4 top-4 z-10"
+              @click="close"
+            />
+
+            <div class="grid items-start gap-6 pr-10 lg:grid-cols-[minmax(0,1fr)_auto]">
+              <div>
+                <p :class="labelClass">Session workbench</p>
+                <h2 :class="sectionTitleClass">Create or join</h2>
+              </div>
+              <div class="flex flex-wrap items-center gap-[0.35rem] font-mono text-[0.72rem] text-muted lg:justify-end">
+                <span>Home</span>
+                <UIcon name="i-lucide-chevron-right" class="size-4" />
+                <span>Controller</span>
+                <UIcon name="i-lucide-chevron-right" class="size-4" />
+                <span>Display</span>
+              </div>
+            </div>
+
+            <div class="grid gap-4 lg:grid-cols-2">
+              <div :class="panelSurfaceClass">
+                <div class="inline-flex items-center gap-3 font-[780] text-highlighted">
+                  <UIcon name="i-lucide-plus" class="size-4" />
+                  <span>Create</span>
+                </div>
+                <p :class="panelTextClass">Generate a free room and a QR code for the display device.</p>
+                <UButton
+                  size="xl"
+                  :loading="creating || !createSectionReady"
+                  :disabled="!createSectionReady"
+                  class="mt-auto w-full justify-center"
+                  @click="createRoom"
+                >
+                  Start Free Room
+                </UButton>
+              </div>
+
+              <div :class="panelSurfaceClass">
+                <div class="inline-flex items-center gap-3 font-[780] text-highlighted">
+                  <UIcon name="i-lucide-key-round" class="size-4" />
+                  <span>Join</span>
+                </div>
+                <p :class="panelTextClass">Already have a room code? Open the controller or display you need.</p>
+                <UInput
+                  v-model="joinCode"
+                  placeholder="ABC123"
+                  size="xl"
+                  class="w-full"
+                  :ui="{ base: 'font-mono tracking-[0.24em] uppercase text-center' }"
+                />
+                <div class="flex flex-wrap gap-3">
+                  <UButton
+                    :to="canJoin ? `/controller/${normalizedJoinCode}` : undefined"
+                    :disabled="!canJoin"
+                    size="lg"
+                  >
+                    <UIcon name="i-lucide-sliders-horizontal" class="size-4" />
+                    Controller
+                  </UButton>
+                  <UButton
+                    :to="canJoin ? `/display/${normalizedJoinCode}` : undefined"
+                    :disabled="!canJoin"
+                    size="lg"
+                    color="neutral"
+                    variant="soft"
+                  >
+                    <UIcon name="i-lucide-monitor-play" class="size-4" />
+                    Display
+                  </UButton>
+                </div>
+              </div>
+            </div>
+
+            <Transition
+              enter-active-class="overflow-hidden transition-all duration-300 ease-out"
+              enter-from-class="max-h-0 translate-y-2 opacity-0"
+              enter-to-class="max-h-[24rem] translate-y-0 opacity-100"
+              leave-active-class="overflow-hidden transition-all duration-200 ease-in"
+              leave-from-class="max-h-[24rem] opacity-100"
+              leave-to-class="max-h-0 opacity-0"
+            >
+              <div v-if="createdRoomCode" :class="resultSurfaceClass">
+                <div>
+                  <p :class="labelClass">Room code</p>
+                  <p class="my-2 font-mono text-[clamp(2rem,5vw,3.4rem)] font-[850] tracking-[0.16em] text-highlighted">{{ createdRoomCode }}</p>
+                  <div class="flex flex-wrap gap-3">
+                    <UButton v-for="link in quickLinks" :key="link.label" :to="link.to" size="sm" color="neutral" variant="soft">
+                      <UIcon :name="link.icon" class="size-4" />
+                      {{ link.label }}
+                    </UButton>
+                  </div>
+                </div>
+
+                <img
+                  v-if="qrDataUrl"
+                  :src="qrDataUrl"
+                  alt="Display QR code"
+                  class="h-[8.75rem] w-[8.75rem] rounded-xl bg-neutral-50 p-2"
+                />
+              </div>
+            </Transition>
+          </section>
+        </template>
+      </UModal>
+
+      <section id="flow" class="mt-16 grid gap-4 lg:grid-cols-3" aria-label="How the room runs">
+        <article v-for="step in workbenchSteps" :key="step.label" :class="stepSurfaceClass">
+          <div class="inline-flex size-10 items-center justify-center gap-3 rounded-full border border-default bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_76%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_46%,transparent))] font-[780] text-highlighted">
+            <UIcon :name="step.icon" class="size-5" />
+          </div>
+          <div>
+            <p :class="labelClass">{{ step.label }}</p>
+            <h2 :class="sectionTitleClass">{{ step.title }}</h2>
+            <p :class="panelTextClass">{{ step.body }}</p>
+          </div>
+        </article>
+      </section>
+
+      <section
+        id="spec"
+        class="mt-6 grid gap-8 rounded-[2rem] border border-default/80 bg-[linear-gradient(180deg,color-mix(in_oklch,var(--ui-bg)_76%,transparent),color-mix(in_oklch,var(--ui-bg-muted)_44%,transparent))] px-6 py-8 shadow-[0_24px_70px_color-mix(in_oklch,var(--ui-text-highlighted)_10%,transparent)] backdrop-blur-[16px] backdrop-saturate-[1.08] sm:px-8 lg:grid-cols-[minmax(18rem,22rem)_minmax(0,1fr)] lg:items-start lg:gap-10"
+        aria-label="ompt session capabilities"
+      >
+        <div class="grid gap-4 lg:pt-2">
+          <h2 :class="sectionTitleClass">Built for fast reads, lean budgets, and real shoots.</h2>
+          <p class="m-0 text-base leading-[1.6] text-toned">
+            Use ompt when you need a teleprompter right now, whether you are creating alone, handing off between
+            operator and talent, or keeping production simple without adding more gear or software.
+          </p>
+        </div>
+
+        <div class="w-full overflow-hidden rounded-[1.5rem] border border-default/70 bg-default/35" role="table" aria-label="ompt session spec">
+          <div
+            v-for="row in sessionSpecs"
+            :key="row[0]"
+            class="grid gap-3 border-b border-default/60 px-4 py-4 last:border-b-0 md:grid-cols-[minmax(5.5rem,0.52fr)_minmax(10rem,1fr)_minmax(12rem,1.15fr)] md:gap-5 md:px-5"
+            role="row"
+          >
+            <p class="m-0 font-mono text-[0.82rem] uppercase leading-[1.6] text-muted" role="cell">{{ row[0] }}</p>
+            <p class="m-0 leading-[1.6] text-toned" role="cell">{{ row[1] }}</p>
+            <p class="m-0 leading-[1.6] text-toned" role="cell">{{ row[2] }}</p>
           </div>
         </div>
       </section>
-      <USeparator class="my-8" />
 
-      <section class="grid gap-4 lg:grid-cols-3">
-        <UCard :ui="{ root: 'rounded-[1.75rem] tele-glass', body: 'p-5' }">
-          <p class="text-sm font-medium text-highlighted">1. Load the script</p>
-          <p class="mt-2 text-sm text-muted">Paste markdown or import a Google Doc from the controller once the room is
-            live.
-          </p>
-        </UCard>
-        <UCard :ui="{ root: 'rounded-[1.75rem] tele-glass', body: 'p-5' }">
-          <p class="text-sm font-medium text-highlighted">2. Pick the reading mode</p>
-          <p class="mt-2 text-sm text-muted">Autoplay, manual stepping, and free scroll all stay synced with the
-            display.</p>
-        </UCard>
-        <UCard :ui="{ root: 'rounded-[1.75rem] tele-glass', body: 'p-5' }">
-          <p class="text-sm font-medium text-highlighted">3. Tweak the screen</p>
-          <p class="mt-2 text-sm text-muted">Adjust font size, line spacing, mirror mode, and theme without leaving the
-            stage.
-          </p>
-        </UCard>
-      </section>
+      <footer class="mb-24 mt-10 flex flex-col justify-between gap-4 font-mono text-[0.8rem] text-muted sm:flex-row">
+        <p class="m-0">ompt.io · instant teleprompter rooms · obair.tech 2026</p>
+        <p class="m-0">Start free · control live · display anywhere</p>
+      </footer>
     </div>
 
 
 
     <div v-if="quickLinks.length" class="pointer-events-none fixed inset-x-0 bottom-4 z-40 flex justify-center px-4">
       <div
-        class="pointer-events-auto tele-glass flex w-full max-w-xl items-center justify-between gap-3 rounded-full px-4 py-3 shadow-2xl">
+        :class="['pointer-events-auto flex w-full max-w-xl items-center justify-between gap-3 rounded-full px-4 py-3 shadow-2xl', glassPillClass]">
         <div class="min-w-0">
           <p class="text-xs uppercase tracking-[0.24em] text-muted">Quick Launch</p>
           <p class="truncate font-mono text-sm font-semibold tracking-[0.16em] text-highlighted">
