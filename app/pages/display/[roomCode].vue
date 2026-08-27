@@ -181,27 +181,28 @@ watch(
 
       <div
         v-else
-        class="mx-auto flex h-full max-w-6xl items-center justify-center px-12 text-center"
-        :style="{
-          fontSize: `${state.display.fontSize}px`,
-          lineHeight: String(state.display.lineSpacing)
-        }"
+        ref="contentRef"
+        class="mx-auto h-full w-full max-w-6xl overflow-y-auto px-8 pb-24 pt-24"
       >
-        <UScrollArea class="h-[70vh] w-full rounded border border-default p-6">
-          <div class="space-y-4">
-            <p
-              v-for="(segment, index) in segments"
-              :key="`${index}-${segment}`"
-              :ref="segmentRefs.set"
-              :class="[
-                'transition-opacity',
-                index === state.playback.stepIndex ? 'opacity-100 font-semibold' : 'opacity-45'
-              ]"
-            >
-              {{ segment }}
-            </p>
-          </div>
-        </UScrollArea>
+        <div
+          class="flex min-h-full flex-col justify-center space-y-4 text-center"
+          :style="{
+            fontSize: `${state.display.fontSize}px`,
+            lineHeight: String(state.display.lineSpacing)
+          }"
+        >
+          <p
+            v-for="(segment, index) in segments"
+            :key="`${index}-${segment}`"
+            :ref="segmentRefs.set"
+            :class="[
+              'transition-opacity',
+              index === state.playback.stepIndex ? 'opacity-100 font-semibold' : 'opacity-45'
+            ]"
+          >
+            {{ segment }}
+          </p>
+        </div>
       </div>
     </template>
 
