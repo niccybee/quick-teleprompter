@@ -29,7 +29,7 @@ const plans = [
     price: 'Free',
     detail: 'The instant teleprompter you can use right now.',
     description: 'Built for solo creators, interview setups, video teams, and anyone who wants a capable teleprompter without paying upfront.',
-    ctaLabel: 'Start free now',
+    ctaLabel: 'Start free',
     to: '/',
     icon: 'i-lucide-radio-tower',
     features: [
@@ -142,23 +142,22 @@ const availabilityLabel = (value: boolean | string) => {
             class="inline-flex items-center gap-2 rounded-full border border-default/80 bg-default/75 px-3 py-1 text-sm text-toned shadow-sm backdrop-blur"
           >
             <UIcon name="i-lucide-badge-dollar-sign" class="size-4" />
-            Free to start now, paid depth coming soon
+            Free now · Studio later
           </div>
 
           <div class="space-y-4">
             <h1 class="max-w-4xl text-5xl font-semibold tracking-tight text-highlighted sm:text-6xl lg:text-7xl">
-              Start free today. Upgrade later if your team needs more.
+              Start free today. Upgrade when the team needs more.
             </h1>
             <p class="max-w-2xl text-lg text-toned sm:text-xl">
-              ompt gives you an instant teleprompter right now, with the free Launch plan ready for creators and crews
-              and the first paid tier clearly marked as coming soon.
+              Instant browser teleprompter. Launch is free and ready — paste a script, scan a QR, read.
             </p>
           </div>
 
           <div class="flex flex-wrap gap-3">
             <UButton to="/" size="xl">
               <UIcon name="i-lucide-play" class="size-4" />
-              Start free with Launch
+              Start free
             </UButton>
             <UButton to="/" color="neutral" variant="soft" size="xl">
               <UIcon name="i-lucide-arrow-left" class="size-4" />
