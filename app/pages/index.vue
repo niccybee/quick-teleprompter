@@ -101,7 +101,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
       <section id="launch" class="grid items-center gap-10 lg:grid-cols-[minmax(0,0.86fr)_minmax(22rem,1fr)] lg:gap-16">
         <div class="grid gap-6">
           <p :class="labelClass">Free browser teleprompter · no install</p>
-          <h1 class="m-0 max-w-[11ch] text-[clamp(3rem,16vw,4.6rem)] font-[850] leading-[0.86] tracking-normal text-highlighted lg:text-[clamp(3.1rem,7vw,7.4rem)]">
+          <h1 class="m-0 w-full max-w-full text-[clamp(1.85rem,calc((100vw-2.5rem)/7.1),3.35rem)] font-[850] leading-[0.9] tracking-normal text-highlighted break-words sm:max-w-[11ch] sm:text-[clamp(2.75rem,8vw,4.6rem)] sm:leading-[0.86] lg:text-[clamp(3.1rem,7vw,7.4rem)]">
             Teleprompter up before the camera rolls.
           </h1>
           <p class="m-0 max-w-[35rem] text-[clamp(1.05rem,1.6vw,1.25rem)] leading-[1.7] text-toned">
