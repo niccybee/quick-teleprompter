@@ -6,7 +6,7 @@ useHead({
   meta: [
     {
       name: 'description',
-      content: 'Start a free teleprompter in seconds with synced controller and display screens for creators, crews, and budget-friendly shoots.'
+      content: 'Free browser teleprompter. Synced controller + display. Paste a script, scan a QR, read in seconds.'
     }
   ]
 })
@@ -52,28 +52,28 @@ const workbenchSteps = [
   {
     label: 'Create',
     title: 'Start a room in seconds',
-    body: 'Spin up a free teleprompter, hand the display screen a QR code, and keep the controller on your device.',
+    body: 'Spin a room. Scan the QR. Keep control on your phone.',
     icon: 'i-lucide-radio-tower'
   },
   {
     label: 'Load',
     title: 'Bring in the script',
-    body: 'Paste markdown or import a Google Doc once you are inside the controller view.',
+    body: 'Paste markdown. Or pull a Google Doc. Done.',
     icon: 'i-lucide-file-text'
   },
   {
     label: 'Run',
     title: 'Keep the take moving',
-    body: 'Step manually, autoplay, free-scroll, mirror, and tune display settings while the screen stays synced.',
+    body: 'Step. Autoplay. Free-scroll. Mirror. Stay synced.',
     icon: 'i-lucide-sliders-horizontal'
   }
 ]
 
 const sessionSpecs = [
-  ['Room', 'Free launch in seconds', 'Share by QR or direct link'],
-  ['Views', 'Controller + Display', 'Separate devices stay in lockstep'],
-  ['Input', 'Markdown + Google Docs', 'Load the script from the controller'],
-  ['Display', 'Comfort controls built in', 'Themes, mirroring, and readability stay available']
+  ['Room', 'Live in seconds', 'QR or link'],
+  ['Views', 'Controller + display', 'Locked in sync'],
+  ['Input', 'Markdown + Docs', 'Load from controller'],
+  ['Display', 'Comfort controls', 'Theme, mirror, readability']
 ]
 
 const labelClass = 'm-0 text-[0.72rem] font-extrabold uppercase tracking-[0.16em] text-muted'
@@ -100,17 +100,16 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
     <div class="mx-auto mt-16 w-[min(100%,74rem)] sm:mt-24">
       <section id="launch" class="grid items-center gap-10 lg:grid-cols-[minmax(0,0.86fr)_minmax(22rem,1fr)] lg:gap-16">
         <div class="grid gap-6">
-          <p :class="labelClass">ompt.io · instant teleprompter · free to start</p>
+          <p :class="labelClass">Free browser teleprompter · no install</p>
           <h1 class="m-0 max-w-[11ch] text-[clamp(3rem,16vw,4.6rem)] font-[850] leading-[0.86] tracking-normal text-highlighted lg:text-[clamp(3.1rem,7vw,7.4rem)]">
-            Start free before the camera rolls.
+            Teleprompter up before the camera rolls.
           </h1>
           <p class="m-0 max-w-[35rem] text-[clamp(1.05rem,1.6vw,1.25rem)] leading-[1.7] text-toned">
-            ompt spins up an instant teleprompter for your script. Put the display on a second screen, keep the
-            controller in your hand, and start reading in seconds whether you are filming solo or running a lean crew.
+            Open a room. Paste or link a doc to the presenter. Control from your phone. Solo or lean crew — live in seconds.
           </p>
           <UButton size="lg" color="primary" variant="solid" class="w-full justify-center sm:w-fit" @click="startWorkbenchOpen = true">
             <UIcon name="i-lucide-play" class="size-4" />
-            Start free now
+            Start free
           </UButton>
         </div>
 
@@ -135,7 +134,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
                 <UIcon name="i-lucide-plus" class="size-4" />
                 <span>Create</span>
               </div>
-              <p :class="panelTextClass">Generate a free room and a QR code for the display device.</p>
+              <p :class="panelTextClass">New room. QR for the display. Go.</p>
               <UButton
                 size="xl"
                 :loading="creating || !createSectionReady"
@@ -143,7 +142,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
                 class="mt-auto w-full justify-center"
                 @click="createRoom"
               >
-                Start Free Room
+                Start free
               </UButton>
             </div>
 
@@ -152,7 +151,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
                 <UIcon name="i-lucide-key-round" class="size-4" />
                 <span>Join</span>
               </div>
-              <p :class="panelTextClass">Already have a room code? Open the controller or display you need.</p>
+              <p :class="panelTextClass">Got a code? Jump to controller or display.</p>
               <UInput
                 v-model="joinCode"
                 placeholder="ABC123"
@@ -227,7 +226,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
                   <UIcon name="i-lucide-plus" class="size-4" />
                   <span>Create</span>
                 </div>
-                <p :class="panelTextClass">Generate a free room and a QR code for the display device.</p>
+                <p :class="panelTextClass">New room. QR for the display. Go.</p>
                 <UButton
                   size="xl"
                   :loading="creating || !createSectionReady"
@@ -235,7 +234,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
                   class="mt-auto w-full justify-center"
                   @click="createRoom"
                 >
-                  Start Free Room
+                  Start free
                 </UButton>
               </div>
 
@@ -244,7 +243,7 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
                   <UIcon name="i-lucide-key-round" class="size-4" />
                   <span>Join</span>
                 </div>
-                <p :class="panelTextClass">Already have a room code? Open the controller or display you need.</p>
+                <p :class="panelTextClass">Got a code? Jump to controller or display.</p>
                 <UInput
                   v-model="joinCode"
                   placeholder="ABC123"
@@ -298,10 +297,9 @@ const stepSurfaceClass = 'grid min-h-72 gap-6 rounded-2xl border border-default/
         aria-label="ompt session capabilities"
       >
         <div class="grid gap-4 lg:pt-2">
-          <h2 :class="sectionTitleClass">Built for fast reads, lean budgets, and real shoots.</h2>
+          <h2 :class="sectionTitleClass">Fast reads. Lean budgets. Real shoots.</h2>
           <p class="m-0 text-base leading-[1.6] text-toned">
-            Use ompt when you need a teleprompter right now, whether you are creating alone, handing off between
-            operator and talent, or keeping production simple without adding more gear or software.
+            Need a teleprompter now? Solo, operator + talent, or no-extra-gear setups — ompt’s ready.
           </p>
         </div>
 
